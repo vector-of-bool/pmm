@@ -1,7 +1,10 @@
+set(PMM_CONAN_MIN_VERSION 1.7.4     CACHE INTERNAL "Minimum Conan version we support")
+set(PMM_CONAN_MAX_VERSION 1.7.9999  CACHE INTERNAL "Maximum Conan version we support")
+
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
 function(_pmm_get_conan_venv python_pkg)
-    set(msg "Get Conan with ${python_pkg}")
+    set(msg "[pmm] Get Conan with ${python_pkg}")
     message(STATUS "${msg}")
     find_package(${python_pkg} COMPONENTS Interpreter QUIET)
     if(NOT TARGET ${python_pkg}::Interpreter)
@@ -63,7 +66,7 @@ function(_pmm_get_conan_venv python_pkg)
     # Upgrade pip installation
     message(STATUS "${msg} - Upgrade Pip")
     execute_process(
-        COMMAND "${venv_py}" -m pip install -U pip
+        COMMAND "${venv_py}" -m pip install -qU pip setuptools
         OUTPUT_VARIABLE out
         ERROR_VARIABLE out
         RESULT_VARIABLE rc
@@ -103,6 +106,7 @@ function(_pmm_get_conan_venv python_pkg)
     endif()
 endfunction()
 
+# Ensure the presence of a `CONAN_EXECUTABLE` program
 function(_pmm_ensure_conan)
     if(CONAN_EXECUTABLE)
         return()
@@ -113,8 +117,9 @@ function(_pmm_ensure_conan)
     set(_prev "${CONAN_EXECUTABLE}")
     find_program(
         CONAN_EXECUTABLE conan
-        PATHS
+        HINTS
             ${pyenv_versions}
+        PATHS
             "$ENV{HOME}/.local"
             C:/Python36
             C:/Python27
@@ -126,12 +131,12 @@ function(_pmm_ensure_conan)
         )
     if(CONAN_EXECUTABLE)
         if(NOT _prev)
-            message(STATUS "Found Conan: ${CONAN_EXECUTABLE}")
+            message(STATUS "[pmm] Found Conan: ${CONAN_EXECUTABLE}")
         endif()
         return()
     endif()
 
-    message(STATUS "No existing Conan installation found. We'll try to obtain one.")
+    message(STATUS "[pmm] No existing Conan installation found. We'll try to obtain one.")
 
     # No conan. Let's try to get it using Python
     _pmm_get_conan_venv(Python3)
@@ -141,11 +146,48 @@ function(_pmm_ensure_conan)
     _pmm_get_conan_venv(Python2)
 endfunction()
 
-function(_pmm_conan args)
-    set(options)
-    set(args)
-    set(list_args)
-    cmake_parse_arguments(ARG "${options}" "${args}" "${list_args}" "${args}")
+function(_pmm_conan_install_1)
+    set(src "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(bin "${CMAKE_CURRENT_BINARY_DIR}")
+    # Install the thing
+    get_filename_component(conan_paths conan_paths.cmake ABSOLUTE)
+    # Do the regular install logic
+    get_filename_component(conan_paths "${bin}/conan_paths.cmake" ABSOLUTE)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
+
+    if(EXISTS "${conanfile}")
+        if("${conanfile}" IS_NEWER_THAN "${conan_paths}")
+            message(STATUS "Installing Conan requirements from ${conanfile}")
+            execute_process(
+                COMMAND "${CONAN_EXECUTABLE}" install "${src}"
+                    -e "C=${CMAKE_C_COMPILER}"
+                    -e "CXX=${CMAKE_CXX_COMPILER}"
+                    -g cmake_paths
+                    -b missing
+                WORKING_DIRECTORY "${bin}"
+                RESULT_VARIABLE retc
+                )
+            if(retc)
+                message(SEND_ERROR "Conan install failed [${retc}]:\n${out}")
+            endif()
+        endif()
+    endif()
+    set(__conan_paths "${conan_paths}" PARENT_SCOPE)
+endfunction()
+
+macro(_pmm_conan_install)
+    _pmm_conan_install_1()
+    include("${__conan_paths}" OPTIONAL RESULT_VARIABLE __was_included)
+    if(NOT __was_included)
+        message(SEND_ERROR "Conan dependencies were not imported (Expected file ${__conan_paths}). You may need to run Conan manually (from the build directory).")
+    endif()
+    unset(__conan_paths)
+    unset(__was_included)
+endmacro()
+
+# Implement the `CONAN` subcommand
+function(_pmm_conan)
+    _pmm_parse_args()
 
     # Ensure that we have Conan
     _pmm_ensure_conan()
@@ -153,4 +195,48 @@ function(_pmm_conan args)
         message(SEND_ERROR "Cannot use Conan with PMM because we were unable to find/obtain a Conan executable.")
         return()
     endif()
+    if(NOT CONAN_PREV_EXE STREQUAL CONAN_EXECUTABLE)
+        execute_process(
+            COMMAND "${CONAN_EXECUTABLE}" --version
+            OUTPUT_VARIABLE out
+            ERROR_VARIABLE out
+            RESULT_VARIABLE retc
+            )
+        if(retc)
+            set(exe "${CONAN_EXECUTABLE}")
+            unset(CONAN_EXECUTABLE CACHE)
+            message(FATAL_ERROR "Conan executable (${exe}) seems invalid [${retc}]:\n${out}")
+        endif()
+        set(_prev "${PMM_CONAN_VERSION}")
+        if(out MATCHES "Conan version ([0-9]+\\.[0-9]+\\.[0-9]+)")
+            set(PMM_CONAN_VERSION "${CMAKE_MATCH_1}" CACHE INTERNAL "Conan version")
+            if(PMM_CONAN_VERSION VERSION_LESS PMM_CONAN_MIN_VERSION)
+                message(WARNING "Conan version ${PMM_CONAN_VERSION} is older than the minimum supported version ${PMM_CONAN_MIN_VERSION}")
+            elseif(PMM_CONAN_VERSION VERSION_GREATER PMM_CONAN_MAX_VERSION)
+                message(WARNING "Conan version ${PMM_CONAN_VERSION} is newer than the maximum supported version ${PMM_CONAN_MAX_VERSION}")
+            endif()
+            if(NOT _prev)
+                message(STATUS "[pmm] Conan version: ${PMM_CONAN_VERSION}")
+            endif()
+        else()
+            message(WARNING "Command (${CONAN_EXECUTABLE} --version) did not produce parseable output:\n${out}")
+            set(PMM_CONAN_VERSION "Unknown" CACHE INTERNAL "Conan version")
+        endif()
+    endif()
+    set(CONAN_PREV_EXE "${CONAN_EXECUTABLE}" CACHE INTERNAL "Previous known-good Conan executable")
+
+    unset(conanfile)
+    foreach(fname IN ITEMS conanfile.txt conanfile.py)
+        set(cand "${PROJECT_SOURCE_DIR}/${fname}")
+        if(EXISTS "${cand}")
+            set(conanfile "${cand}")
+        endif()
+    endforeach()
+
+    if(NOT DEFINED conanfile)
+        message(FATAL_ERROR "pf(CONAN) requires a Conanfile in your project source directory")
+    endif()
+    _pmm_conan_install()
+    _pmm_lift(CMAKE_MODULE_PATH)
+    _pmm_lift(CMAKE_PREFIX_PATH)
 endfunction()

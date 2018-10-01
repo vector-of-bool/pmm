@@ -1,14 +1,12 @@
-function(pmm)
-    set(options)
-    set(args)
-    set(list_args CONAN)
-    cmake_parse_arguments(ARG "${options}" "${args}" "${list_args}" "${ARGV}")
+cmake_minimum_required(VERSION 3.8)
 
-    foreach(arg IN LISTS ARG_UNPARSED_ARGUMENTS)
-        message(WARNING "Unknown argument to pmm(): `${arg}`")
-    endforeach()
+# The main function.
+function(pmm)
+    _pmm_parse_args(+ CONAN)
 
     if(DEFINED ARG_CONAN OR "CONAN" IN_LIST ARGV)
-        _pmm_conan("${ARG_CONAN}")
+        _pmm_conan(${ARG_CONAN})
+        _pmm_lift(CMAKE_MODULE_PATH)
+        _pmm_lift(CMAKE_PREFIX_PATH)
     endif()
 endfunction()
