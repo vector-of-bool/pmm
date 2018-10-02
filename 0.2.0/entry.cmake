@@ -1,0 +1,43 @@
+function(_pmm_download url dest)
+    cmake_parse_arguments(ARG "NO_CHECK" "RESULT_VARIABLE" "" "${ARGN}")
+    set(tmp "${dest}.tmp")
+    file(
+        DOWNLOAD "${url}"
+        "${tmp}"
+        STATUS st
+        )
+    list(GET st 0 rc)
+    list(GET st 1 msg)
+    if(rc)
+        file(REMOVE "${tmp}")
+        if(NOT ARG_NO_CHECK)
+            message(FATAL_ERROR "Error while downloading file from '${url}' to '${dest}' [${rc}]: ${msg}")
+        endif()
+        if(ARG_RESULT_VARIABLE)
+            set("${ARG_RESULT_VARIABLE}" FALSE PARENT_SCOPE)
+        endif()
+    else()
+        file(RENAME "${tmp}" "${dest}")
+        if(ARG_RESULT_VARIABLE)
+            set("${ARG_RESULT_VARIABLE}" TRUE PARENT_SCOPE)
+        endif()
+    endif()
+endfunction()
+
+foreach(fname IN ITEMS util.cmake conan.cmake main.cmake)
+    get_filename_component(_dest "${PMM_DIR}/${fname}" ABSOLUTE)
+    _pmm_download("${PMM_URL}/${fname}" "${_dest}")
+    include("${_dest}")
+endforeach()
+
+# Do the update check.
+set(_latest_info_url "${PMM_URL_BASE}/latest-info.cmake")
+set(_latest_info_file "${PMM_DIR}/latest-info.cmake")
+_pmm_download("${_latest_info_url}" "${_latest_info_file}" NO_CHECK RESULT_VARIABLE did_download)
+if(NOT did_download)
+    if(NOT PMM_IGNORE_NEW_VERSION)
+        message(STATUS "[pmm] Failed to check for updates (Couldn't download ${_latest_info_url})")
+    endif()
+else()
+    include("${_latest_info_file}")
+endif()
