@@ -146,48 +146,162 @@ function(_pmm_ensure_conan)
     _pmm_get_conan_venv(Python2)
 endfunction()
 
+function(_pmm_conan_calc_settings_args out)
+    set(ret)
+    get_cmake_property(langs ENABLED_LANGUAGES)
+    set(lang CXX)
+    if(NOT "CXX" IN_LIST langs)
+        set(lang C)
+        if(NOT "C" IN_LIST langs)
+            message(FATAL_ERROR "pmm(CONAN) requires that either C or C++ languages be enabled.")
+        endif()
+    endif()
+    set(comp_id "${CMAKE_${lang}_COMPILER_ID}")
+    set(comp_version "${CMAKE_${lang}_COMPILER_VERSION}")
+
+    set(majmin_ver_re "^([0-9]+\\.[0-9]+)")
+
+    ## Check for GNU (GCC)
+    if(comp_id STREQUAL GNU)
+        # Use 'gcc'
+        list(APPEND ret -s compiler=gcc)
+        # Parse out the version
+        if(NOT comp_version MATCHES "${majmin_ver_re}")
+            message(FATAL_ERROR "Unable to parse compiler version string: ${comp_version}")
+        endif()
+        set(use_version "${CMAKE_MATCH_1}")
+        if(use_version VERSION_GREATER_EQUAL 4)
+            string(REGEX REPLACE "^([0-9]+)" "\\1" use_version "${use_version}")
+        endif()
+        list(APPEND ret -s compiler.version=${use_version})
+        # Detect what libstdc++ ABI are likely using.
+        if(lang STREQUAL "CXX")
+            if(comp_version VERSION_GREATER_EQUAL 5.1)
+                list(APPEND ret -s compiler.libcxx=libstdc++11)
+            else()
+                list(APPEND ret -s compiler.libcxx=libstdc++)
+            endif()
+        endif()
+    ## Apple's Clang is a bit of a goob.
+    elseif(comp_id STREQUAL AppleClang)
+        # Use apple-clang
+        list(APPEND ret -s compiler=apple-clang)
+        if(lang STREQUAL "CXX")
+            list(APPEND ret -s compiler.libcxx=libc++)
+        endif()
+        # Get that version. Same as with Clang
+        if(NOT comp_version MATCHES "${majmin_ver_re}")
+            message(FATAL_ERROR "Unable to parse compiler version string: ${comp_version}")
+        endif()
+        list(APPEND ret -s "compiler.version=${CMAKE_MATCH_1}")
+    # Non-Apply Clang.
+    elseif(comp_id STREQUAL Clang)
+        # Regular clang
+        list(APPEND ret -s compiler=clang)
+        # Get that version. Same as with AppleClang
+        if(NOT comp_version MATCHES "${majmin_ver_re}")
+            message(FATAL_ERROR "Unable to parse compiler version string: ${comp_version}")
+        endif()
+        list(APPEND ret -s "compiler.version=${CMAKE_MATCH_1}")
+        # TODO: Support libc++ with regular Clang. Plz.
+        if(lang STREQUAL "CXX")
+            list(APPEND ret -s compiler.libcxx=libstdc++)
+        endif()
+    elseif(comp_id STREQUAL MSVC)
+        list(APPEND ret -s "compiler=Visual Studio")
+        message(WARNING "[pmm] MSVC isn't fully supported yet. Watch this space for changes.")
+    else()
+        message(FATAL_ERROR "Unable to detect compiler setting for Conan from CMake. (Unhandled compiler ID ${comp_id}).")
+    endif()
+
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        list(APPEND ret -s arch=x86_64)
+    else()
+        list(APPEND ret -s arch=x86)
+    endif()
+
+    if(CMAKE_CROSSCOMPILING)
+        message(WARNING "[pmm] Cross compiling isn't supported yet. Be careful.")
+    endif()
+
+    foreach(setting IN LISTS ARG_SETTINGS)
+        list(APPEND ret -s ${setting})
+    endforeach()
+
+    set("${out}" "${ret}" PARENT_SCOPE)
+endfunction()
+
 function(_pmm_conan_install_1)
     set(src "${CMAKE_CURRENT_SOURCE_DIR}")
     set(bin "${CMAKE_CURRENT_BINARY_DIR}")
     # Install the thing
-    get_filename_component(conan_paths conan_paths.cmake ABSOLUTE)
     # Do the regular install logic
-    get_filename_component(conan_paths "${bin}/conan_paths.cmake" ABSOLUTE)
+    get_filename_component(conan_inc "${bin}/conanbuildinfo.cmake" ABSOLUTE)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
 
-    if(EXISTS "${conanfile}")
-        if("${conanfile}" IS_NEWER_THAN "${conan_paths}")
-            message(STATUS "Installing Conan requirements from ${conanfile}")
-            execute_process(
-                COMMAND "${CONAN_EXECUTABLE}" install "${src}"
-                    -e "C=${CMAKE_C_COMPILER}"
-                    -e "CXX=${CMAKE_CXX_COMPILER}"
-                    -g cmake_paths
-                    -b missing
-                WORKING_DIRECTORY "${bin}"
-                RESULT_VARIABLE retc
-                )
-            if(retc)
-                message(SEND_ERROR "Conan install failed [${retc}]:\n${out}")
-            endif()
+    _pmm_conan_calc_settings_args(more_args)
+    foreach(arg IN LISTS ARG_OPTIONS)
+        list(APPEND more_args --option ${arg})
+    endforeach()
+    _pmm_set_if_undef(ARG_BUILD missing)
+    set(conan_install_cmd
+        "${CONAN_EXECUTABLE}" install "${src}"
+            ${more_args}
+            --generator cmake
+            --build ${ARG_BUILD}
+        )
+    set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd.txt")
+    set(do_install FALSE)
+    if("${conanfile}" IS_NEWER_THAN "${conan_inc}")
+        set(do_install TRUE)
+    endif()
+    if(NOT EXISTS "${prev_cmd_file}")
+        set(do_install TRUE)
+    else()
+        file(READ "${prev_cmd_file}" prev_cmd)
+        if(NOT prev_cmd STREQUAL conan_install_cmd)
+            set(do_install TRUE)
         endif()
     endif()
-    set(__conan_paths "${conan_paths}" PARENT_SCOPE)
+    if(do_install)
+        message(STATUS "[pmm] Installing Conan requirements from ${conanfile}")
+        execute_process(
+            COMMAND ${conan_install_cmd}
+            WORKING_DIRECTORY "${bin}"
+            RESULT_VARIABLE retc
+            )
+        if(retc)
+            message(SEND_ERROR "Conan install failed [${retc}]:\n${out}")
+        else()
+            file(WRITE "${prev_cmd_file}" "${conan_install_cmd}")
+        endif()
+    endif()
+    set(__conan_inc "${conan_inc}" PARENT_SCOPE)
 endfunction()
+
+macro(_pmm_conan_do_setup)
+    conan_define_targets()
+    conan_set_find_paths()
+endmacro()
 
 macro(_pmm_conan_install)
     _pmm_conan_install_1()
-    include("${__conan_paths}" OPTIONAL RESULT_VARIABLE __was_included)
+    include("${__conan_inc}" OPTIONAL RESULT_VARIABLE __was_included)
     if(NOT __was_included)
-        message(SEND_ERROR "Conan dependencies were not imported (Expected file ${__conan_paths}). You may need to run Conan manually (from the build directory).")
+        message(SEND_ERROR "Conan dependencies were not imported (Expected file ${__conan_inc}). You may need to run Conan manually (from the build directory).")
+    else()
+        _pmm_conan_do_setup()
     endif()
-    unset(__conan_paths)
+    unset(__conan_inc)
     unset(__was_included)
 endmacro()
 
 # Implement the `CONAN` subcommand
 function(_pmm_conan)
-    _pmm_parse_args()
+    _pmm_parse_args(
+        - BUILD
+        + SETTINGS OPTIONS
+        )
 
     # Ensure that we have Conan
     _pmm_ensure_conan()

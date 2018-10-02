@@ -79,9 +79,17 @@ future.
 
 The `pmm()` signature:
 
-```text
+```cmake
 pmm(
-    [CONAN {AUTO}]
+    # Use Conan
+    [CONAN
+        # Set additional --setting flags
+        [SETTINGS ...]
+        # Set additional --option flags
+        [OPTIONS ...]
+        # Set the --build option. (Default is `missing`)
+        [BUILD <policy>]
+    ]
 )
 ```
 
@@ -90,12 +98,16 @@ pmm(
 In `CONAN` mode, PMM will find, obtain, and use Conan to manage project
 packages.
 
-PMM will always use the `cmake_paths` Conan generator. After installing for
-the project, includes `cmake_paths.cmake`, which sets `CMAKE_MODULE_PATH`
-and `CMAKE_PREFIX_PATH`, ready to be used for `find_package()` by the
-project.
+PMM will always use the `cmake` Conan generator, and will define imported
+targets for consumption (Equivalent of `conan_basic_setup(TARGETS)`). It will
+also set `CMAKE_PREFIX_PATH` and `CMAKE_MODULE_PATH` for you to use
+`find_package()` and `include()` against the installed dependencies.
 
-The nitty-gritter of how this is done:
+`CONAN` mode requires a `conanfile.txt` or `conanfile.py` in your project
+source directory. It will run `conan install` against this file to obtain
+dependencies for your project.
+
+The nitty-gritty of how PMM finds/obtains Conan:
 
 1. Check for the `CONAN_EXECUTABLE` variable. If found, it is used.
 2. Try to find a `conan` executable. Searches:
@@ -109,13 +121,3 @@ The nitty-gritter of how this is done:
     2. With a virtualenv module, creates a Python virtualenv in the
         project's build directory.
     3. Installs Conan in *within the build directory*, and uses that.
-
-`CONAN` requires a sub-mode. Currently there is only `AUTO`.
-
-### `AUTO` Conan mode
-
-Passing `AUTO` for `CONAN` requests automatic mode, where PMM will use the
-`conanfile.txt` or `conanfile.py` in your project to download and install
-dependencies.
-
-This mode will also
