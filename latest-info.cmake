@@ -9,8 +9,8 @@ endfunction()
 set(PMM_LATEST_VERSION 0.1.1)
 
 if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
-    message(STATUS "You are using PMM version ${PMM_VERSION}. The latest is ${PMM_LATEST_VERSION}.")
-    message(STATUS "Changes since ${PMM_VERSION} include the following:")
+    message(STATUS "[pmm] You are using PMM version ${PMM_VERSION}. The latest is ${PMM_LATEST_VERSION}.")
+    message(STATUS "[pmm] Changes since ${PMM_VERSION} include the following:")
     _pmm_changes(0.1.1
         "Automatic update checks"
         )
