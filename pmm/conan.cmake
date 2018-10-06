@@ -13,17 +13,13 @@ function(_pmm_get_conan_venv python_pkg)
         return()
     endif()
     get_target_property(py_exe "${python_pkg}::Interpreter" LOCATION)
+    message(STATUS "${msg} - Candidate Python: ${py_exe} ")
 
     # Try to find a virtualenv module
     unset(venv_mod)
     foreach(cand IN ITEMS venv virtualenv)
-        execute_process(
-            COMMAND "${py_exe}" -m ${cand} --help
-            OUTPUT_VARIABLE out
-            ERROR_VARIABLE out
-            RESULT_VARIABLE rc
-            )
-        if(NOT rc)
+        _pmm_exec("${py_exe}" -m ${cand} --help)
+        if(NOT _PMM_RC)
             set(venv_mod ${cand})
             break()
         endif()
@@ -35,21 +31,13 @@ function(_pmm_get_conan_venv python_pkg)
 
     # Now create a new virtualenv
     set(venv_dir "${PMM_DIR}/_conan_venv")
-    set(venv_stamp "${venv_dir}/good.stamp")
-    if(NOT EXISTS "${venv_stamp}")
-        file(REMOVE_RECURSE "${venv_dir}")
-        message(STATUS "${msg} - Create virtualenv")
-        execute_process(
-            COMMAND "${py_exe}" -m ${venv_mod} "${venv_dir}"
-            OUTPUT_VARIABLE out
-            ERROR_VARIABLE out
-            RESULT_VARIABLE rc
-            )
-        if(rc)
-            message(WARNING "Error while trying to create virtualenv [${rc}]:\n${out}")
-            message(STATUS "${msg} - Fail: Could not create virtualenv")
-            return()
-        endif()
+    file(REMOVE_RECURSE "${venv_dir}")
+    message(STATUS "${msg} - Create virtualenv")
+    _pmm_exec("${py_exe}" -m ${venv_mod} "${venv_dir}")
+    if(_PMM_RC)
+        message(WARNING "Error while trying to create virtualenv [${_PMM_RC}]:\n${_PMM_OUTPUT}")
+        message(STATUS "${msg} - Fail: Could not create virtualenv")
+        return()
     endif()
 
     # Get the Python installed therein
@@ -65,28 +53,18 @@ function(_pmm_get_conan_venv python_pkg)
 
     # Upgrade pip installation
     message(STATUS "${msg} - Upgrade Pip")
-    execute_process(
-        COMMAND "${venv_py}" -m pip install -qU pip setuptools
-        OUTPUT_VARIABLE out
-        ERROR_VARIABLE out
-        RESULT_VARIABLE rc
-        )
-    if(rc)
-        message(WARNING "Failed while upgrading Pip in the virtualenv [${rc}]:\n${out}")
+    _pmm_exec("${venv_py}" -m pip install -qU pip setuptools)
+    if(_PMM_RC)
+        message(WARNING "Failed while upgrading Pip in the virtualenv [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         message(STATUS "${msg} - Fail: Pip could not be upgraded")
         return()
     endif()
 
     # Finally, install Conan inside the virtualenv.
     message(STATUS "${msg} - Install Conan")
-    execute_process(
-        COMMAND "${venv_py}" -m pip install -q conan==1.7.4
-        OUTPUT_VARIABLE out
-        ERROR_VARIABLE out
-        RESULT_VARIABLE rc
-        )
-    if(rc)
-        message(WARNING "Failed to install Conan in virtualenv [${rc}]:\n${out}")
+    _pmm_exec("${venv_py}" -m pip install -q conan==1.7.4)
+    if(_PMM_RC)
+        message(WARNING "Failed to install Conan in virtualenv [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         message(STATUS "${msg} - Fail: Could not install Conan in virtualenv")
         return()
     endif()
@@ -161,6 +139,17 @@ function(_pmm_conan_calc_settings_args out)
 
     set(majmin_ver_re "^([0-9]+\\.[0-9]+)")
 
+    # Check if the user is mixing+matching compilers.
+    if("C" IN_LIST langs AND "CXX" IN_LIST langs)
+        if(NOT CMAKE_C_COMPILER_ID STREQUAL CMAKE_CXX_COMPILER_ID)
+            message(WARNING "Mixing compiler vendors for C and C++ may produce unexpected results.")
+        else()
+            if(NOT CMAKE_C_COMPILER_VERSION STREQUAL CMAKE_CXX_COMPILER_VERSION)
+                message(WARNING "Mixing compiler versions for C and C++ may produce unexpected results.")
+            endif()
+        endif()
+    endif()
+
     ## Check for GNU (GCC)
     if(comp_id STREQUAL GNU)
         # Use 'gcc'
@@ -175,7 +164,7 @@ function(_pmm_conan_calc_settings_args out)
         endif()
         list(APPEND ret -s compiler.version=${use_version})
         # Detect what libstdc++ ABI are likely using.
-        if(lang STREQUAL "CXX")
+        if(lang STREQUAL "CXX" AND comp_version VERSION_GREATER_EQUAL 5)
             if(comp_version VERSION_GREATER_EQUAL 5.1)
                 list(APPEND ret -s compiler.libcxx=libstdc++11)
             else()
@@ -243,6 +232,14 @@ function(_pmm_conan_install_1)
     foreach(arg IN LISTS ARG_OPTIONS)
         list(APPEND more_args --option ${arg})
     endforeach()
+
+    if(CMAKE_C_COMPILER)
+        list(APPEND more_args -e CC=${CMAKE_C_COMPILER})
+    endif()
+    if(CMAKE_CXX_COMPILER)
+        list(APPEND more_args -e CXX=${CMAKE_CXX_COMPILER})
+    endif()
+
     _pmm_set_if_undef(ARG_BUILD missing)
     set(conan_install_cmd
         "${CONAN_EXECUTABLE}" install "${src}"
@@ -310,19 +307,14 @@ function(_pmm_conan)
         return()
     endif()
     if(NOT CONAN_PREV_EXE STREQUAL CONAN_EXECUTABLE)
-        execute_process(
-            COMMAND "${CONAN_EXECUTABLE}" --version
-            OUTPUT_VARIABLE out
-            ERROR_VARIABLE out
-            RESULT_VARIABLE retc
-            )
-        if(retc)
+        _pmm_exec("${CONAN_EXECUTABLE}" --version)
+        if(_PMM_RC)
             set(exe "${CONAN_EXECUTABLE}")
             unset(CONAN_EXECUTABLE CACHE)
-            message(FATAL_ERROR "Conan executable (${exe}) seems invalid [${retc}]:\n${out}")
+            message(FATAL_ERROR "Conan executable (${exe}) seems invalid [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         endif()
         set(_prev "${PMM_CONAN_VERSION}")
-        if(out MATCHES "Conan version ([0-9]+\\.[0-9]+\\.[0-9]+)")
+        if(_PMM_OUTPUT MATCHES "Conan version ([0-9]+\\.[0-9]+\\.[0-9]+)")
             set(PMM_CONAN_VERSION "${CMAKE_MATCH_1}" CACHE INTERNAL "Conan version")
             if(PMM_CONAN_VERSION VERSION_LESS PMM_CONAN_MIN_VERSION)
                 message(WARNING "Conan version ${PMM_CONAN_VERSION} is older than the minimum supported version ${PMM_CONAN_MIN_VERSION}")
@@ -333,7 +325,7 @@ function(_pmm_conan)
                 message(STATUS "[pmm] Conan version: ${PMM_CONAN_VERSION}")
             endif()
         else()
-            message(WARNING "Command (${CONAN_EXECUTABLE} --version) did not produce parseable output:\n${out}")
+            message(WARNING "Command (${CONAN_EXECUTABLE} --version) did not produce parseable output:\n${_PMM_OUTPUT}")
             set(PMM_CONAN_VERSION "Unknown" CACHE INTERNAL "Conan version")
         endif()
     endif()
