@@ -9,3 +9,9 @@ file(GLOB_RECURSE pmm_sources CONFIGURE_DEPENDS pmm/*)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${pmm_sources})
 
 pmm(CONAN)
+
+option(BUILD_TESTING "Build the testing tree" ON)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

@@ -1,3 +1,24 @@
+cmake_minimum_required(VERSION 3.10)
+
+function(_pmm_read_script_argv var)
+    set(got_p FALSE)
+    set(got_script FALSE)
+    set(ret)
+    foreach(i RANGE "${CMAKE_ARGC}")
+        set(arg "${CMAKE_ARGV${i}}")
+        if(got_p)
+            if(got_script)
+                list(APPEND ret "${arg}")
+            else()
+                set(got_script TRUE)
+            endif()
+        elseif(arg STREQUAL "-P")
+            set(got_p TRUE)
+        endif()
+    endforeach()
+    set("${var}" "${ret}" PARENT_SCOPE)
+endfunction()
+
 # Argument parser helper. This may look like magic, but it is pretty simple:
 # - Call this at the top of a function
 # - It takes three "list" arguments: `.`, `-` and `+`.
@@ -15,7 +36,17 @@
 #   work.
 macro(_pmm_parse_args)
     cmake_parse_arguments(_ "-nocheck" "" ".;-;+" "${ARGV}")
-    cmake_parse_arguments(ARG "${__.}" "${__-}" "${__+}" "${${}ARGV}")
+    _pmm_parse_arglist("${${}ARGV}" "${__.}" "${__-}" "${__+}")
+endmacro()
+
+macro(_pmm_parse_script_args)
+    cmake_parse_arguments(_ "-nocheck" "" ".;-;+" "${ARGV}")
+    _pmm_read_script_argv(__script_argv)
+    _pmm_parse_arglist("${__script_argv}" "${__.}" "${__-}" "${__+}")
+endmacro()
+
+macro(_pmm_parse_arglist argv opt args list_args)
+    cmake_parse_arguments(ARG "${opt}" "${args}" "${list_args}" "${argv}")
     if(NOT __-nocheck)
         foreach(arg IN LISTS ARG_UNPARSED_ARGUMENTS)
             message(WARNING "Unknown argument: ${arg}")
@@ -26,3 +57,14 @@ endmacro()
 macro(_pmm_lift varname)
     set("${varname}" "${${varname}}" PARENT_SCOPE)
 endmacro()
+
+function(_pmm_exec)
+    execute_process(
+        COMMAND ${ARGN}
+        OUTPUT_VARIABLE out
+        ERROR_VARIABLE out
+        RESULT_VARIABLE rc
+        )
+    set(_PMM_RC "${rc}" PARENT_SCOPE)
+    set(_PMM_OUTPUT "${out}" PARENT_SCOPE)
+endfunction()
