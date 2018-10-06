@@ -13,7 +13,7 @@ if(NOT EXISTS "${test_pr_dir}")
 endif()
 
 if(NOT ARG_/Verbose)
-    set(OUTPUT_EAT_ARGS ERROR_VARIABLE out out OUTPUT_VARIABLE out)
+    set(OUTPUT_EAT_ARGS ERROR_VARIABLE out OUTPUT_VARIABLE out)
 endif()
 
 function(run_checked)
