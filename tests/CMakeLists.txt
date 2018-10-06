@@ -3,6 +3,7 @@ find_program(DOCKER_EXECUTABLE docker DOC "Path to Docker")
 set(DOCKER_TESTS
     u16
     u14
+    u12
     )
 
 get_filename_component(DOCKER_TEST_SCRIPT RunDockerTest.cmake ABSOLUTE)
