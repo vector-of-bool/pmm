@@ -30,10 +30,9 @@ function(_pmm_get_conan_venv python_pkg)
     endif()
 
     # Now create a new virtualenv
-    set(venv_dir "${PMM_DIR}/_conan_venv")
-    file(REMOVE_RECURSE "${venv_dir}")
+    file(REMOVE_RECURSE "${_PMM_CONAN_VENV_DIR}")
     message(STATUS "${msg} - Create virtualenv")
-    _pmm_exec("${py_exe}" -m ${venv_mod} "${venv_dir}")
+    _pmm_exec("${py_exe}" -m ${venv_mod} "${_PMM_CONAN_VENV_DIR}")
     if(_PMM_RC)
         message(WARNING "Error while trying to create virtualenv [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         message(STATUS "${msg} - Fail: Could not create virtualenv")
@@ -45,7 +44,7 @@ function(_pmm_get_conan_venv python_pkg)
     find_program(_venv_py
         NAMES python
         NO_DEFAULT_PATH
-        PATHS "${venv_dir}"
+        PATHS "${_PMM_CONAN_VENV_DIR}"
         PATH_SUFFIXES bin Scripts
         )
     set(venv_py "${_venv_py}")
@@ -73,7 +72,7 @@ function(_pmm_get_conan_venv python_pkg)
     find_program(
         CONAN_EXECUTABLE conan
         NO_DEFAULT_PATH
-        PATHS "${venv_dir}"
+        PATHS "${_PMM_CONAN_VENV_DIR}"
         PATH_SUFFIXES bin Scripts
         )
     if(NOT CONAN_EXECUTABLE)
@@ -90,6 +89,23 @@ function(_pmm_ensure_conan)
         return()
     endif()
 
+    get_filename_component(_PMM_CONAN_VENV_DIR "${_PMM_USER_DATA_DIR}/_conan_venv" ABSOLUTE)
+
+    file(
+        LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
+        GUARD FUNCTION
+        TIMEOUT 3
+        RESULT_VARIABLE lock_res
+        )
+    if(lock_res)
+        message(STATUS "Another CMake instance is installing Conan. Please wait...")
+        file(
+            LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
+            GUARD FUNCTION
+            TIMEOUT 60
+            )
+    endif()
+
     # Try to find an existing Conan installation
     file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*")
     set(_prev "${CONAN_EXECUTABLE}")
@@ -97,6 +113,7 @@ function(_pmm_ensure_conan)
     find_program(
         CONAN_EXECUTABLE conan
         HINTS
+            "${_PMM_CONAN_VENV_DIR}"
             ${pyenv_versions}
         PATHS
             "$ENV{HOME}/.local"
@@ -209,7 +226,7 @@ function(_pmm_conan_calc_settings_args out)
             message(FATAL_ERROR "Unable to parse compiler version string: ${comp_version}")
         endif()
         list(APPEND ret -s "compiler.version=${CMAKE_MATCH_1}")
-    # Non-Apply Clang.
+    # Non-Appley Clang.
     elseif(comp_id STREQUAL Clang)
         # Regular clang
         list(APPEND ret -s compiler=clang)
