@@ -4,11 +4,11 @@ project(pmm VERSION 0.1.0)
 set(PMM_ALWAYS_DOWNLOAD TRUE)
 set(PMM_URL "file://${PROJECT_SOURCE_DIR}/pmm")
 include(pmm.cmake)
+pmm(CONAN)
+include(latest-info.cmake)
 
 file(GLOB_RECURSE pmm_sources CONFIGURE_DEPENDS pmm/*)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${pmm_sources})
-
-pmm(CONAN)
 
 option(BUILD_TESTING "Build the testing tree" ON)
 if(BUILD_TESTING)
