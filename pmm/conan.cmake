@@ -93,16 +93,16 @@ function(_pmm_ensure_conan)
     # Try to find an existing Conan installation
     file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*")
     set(_prev "${CONAN_EXECUTABLE}")
+    file(GLOB py_installs C:/Python*)
     find_program(
         CONAN_EXECUTABLE conan
         HINTS
             ${pyenv_versions}
         PATHS
             "$ENV{HOME}/.local"
-            C:/Python36
-            C:/Python27
-            C:/Python
+            ${py_installs}
         PATH_SUFFIXES
+            .
             bin
             Scripts
         DOC "Path to Conan executable"
@@ -122,6 +122,32 @@ function(_pmm_ensure_conan)
         return()
     endif()
     _pmm_get_conan_venv(Python2)
+endfunction()
+
+function(_pmm_vs_version out)
+    set(ver ${MSVC_VERSION})
+    if(ver GREATER_EQUAL 1920)
+        message(WARNING "PMM doesn't yet recognize this MSVC version. You may need to upgrade PMM.")
+        set(ret 15)
+    elseif(ver GREATER_EQUAL 1910)
+        set(ret 15)
+    elseif(ver GREATER_EQUAL 1900)
+        set(ret 14)
+    elseif(ver GREATER_EQUAL 1800)
+        set(ret 12)
+    elseif(ver GREATER_EQUAL 1700)
+        set(ret 11)
+    elseif(ver GREATER_EQUAL 1600)
+        set(ret 10)
+    elseif(ver GREATER_EQUAL 1500)
+        set(ret 9)
+    elseif(ver GREATER_EQUAL 1400)
+        set(ret 8)
+    else()
+        message(WARNING "Unknown MSVC version: ${ver}.")
+        set(ret 8)
+    endif()
+    set(${out} ${ret} PARENT_SCOPE)
 endfunction()
 
 function(_pmm_conan_calc_settings_args out)
@@ -196,13 +222,19 @@ function(_pmm_conan_calc_settings_args out)
         if(lang STREQUAL "CXX")
             list(APPEND ret -s compiler.libcxx=libstdc++)
         endif()
-    elseif(comp_id STREQUAL MSVC)
-        list(APPEND ret -s "compiler=Visual Studio")
-        message(WARNING "[pmm] MSVC isn't fully supported yet. Watch this space for changes.")
+    elseif(comp_id STREQUAL "MSVC")
+        _pmm_vs_version(vs_version)
+        list(APPEND ret -s "compiler=Visual Studio" -s compiler.version=${vs_version})
+        if (CMAKE_GENERATOR_TOOLSET)
+            list(APPEND ret -s compiler.toolset=${CMAKE_GENERATOR_TOOLSET})
+        elseif(CMAKE_VS_PLATFORM_TOOLSET AND (CMAKE_GENERATOR STREQUAL "Ninja"))
+            list(APPEND ret -s compiler.toolset=${CMAKE_VS_PLATFORM_TOOLSET})
+        endif()
     else()
         message(FATAL_ERROR "Unable to detect compiler setting for Conan from CMake. (Unhandled compiler ID ${comp_id}).")
     endif()
 
+    # Todo: Cross compiling
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         list(APPEND ret -s arch=x86_64)
     else()
