@@ -1,3 +1,11 @@
+# Unset variables that may be affected by a version change
+if(NOT PMM_VERSION STREQUAL PMM_PRIOR_VERSION)
+    foreach(var IN ITEMS PMM_CONAN_EXECUTABLE)
+        unset(${var} CACHE)
+    endforeach()
+endif()
+set(PMM_PRIOR_VERSION "${PMM_VERSION}" CACHE STRING "Previous version of PMM in the source tree" FORCE)
+
 function(_pmm_download url dest)
     cmake_parse_arguments(ARG "NO_CHECK" "RESULT_VARIABLE" "" "${ARGN}")
     set(tmp "${dest}.tmp")
