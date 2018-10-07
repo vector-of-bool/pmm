@@ -68,24 +68,24 @@ function(_pmm_get_conan_venv python_pkg)
         return()
     endif()
 
-    # Conan is installed! Set CONAN_EXECUTABLE
+    # Conan is installed! Set PMM_CONAN_EXECUTABLE
     find_program(
-        CONAN_EXECUTABLE conan
+        PMM_CONAN_EXECUTABLE conan
         NO_DEFAULT_PATH
         PATHS "${_PMM_CONAN_VENV_DIR}"
         PATH_SUFFIXES bin Scripts
         )
-    if(NOT CONAN_EXECUTABLE)
+    if(NOT PMM_CONAN_EXECUTABLE)
         message(WARNING "Conan executbale was not found acter Conan installation. Huh??")
         message(STATUS "${msg} - Fail: No conan executable in Conan installation?")
     else()
-        message(STATUS "${msg} - Installed: ${CONAN_EXECUTABLE}")
+        message(STATUS "${msg} - Installed: ${PMM_CONAN_EXECUTABLE}")
     endif()
 endfunction()
 
-# Ensure the presence of a `CONAN_EXECUTABLE` program
+# Ensure the presence of a `PMM_CONAN_EXECUTABLE` program
 function(_pmm_ensure_conan)
-    if(CONAN_EXECUTABLE)
+    if(PMM_CONAN_EXECUTABLE)
         return()
     endif()
 
@@ -108,10 +108,10 @@ function(_pmm_ensure_conan)
 
     # Try to find an existing Conan installation
     file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*")
-    set(_prev "${CONAN_EXECUTABLE}")
+    set(_prev "${PMM_CONAN_EXECUTABLE}")
     file(GLOB py_installs C:/Python*)
     find_program(
-        CONAN_EXECUTABLE conan
+        PMM_CONAN_EXECUTABLE conan
         HINTS
             "${_PMM_CONAN_VENV_DIR}"
             ${pyenv_versions}
@@ -124,9 +124,9 @@ function(_pmm_ensure_conan)
             Scripts
         DOC "Path to Conan executable"
         )
-    if(CONAN_EXECUTABLE)
+    if(PMM_CONAN_EXECUTABLE)
         if(NOT _prev)
-            message(STATUS "[pmm] Found Conan: ${CONAN_EXECUTABLE}")
+            message(STATUS "[pmm] Found Conan: ${PMM_CONAN_EXECUTABLE}")
         endif()
         return()
     endif()
@@ -135,7 +135,7 @@ function(_pmm_ensure_conan)
 
     # No conan. Let's try to get it using Python
     _pmm_get_conan_venv(Python3)
-    if(CONAN_EXECUTABLE)
+    if(PMM_CONAN_EXECUTABLE)
         return()
     endif()
     _pmm_get_conan_venv(Python2)
@@ -291,7 +291,7 @@ function(_pmm_conan_install_1)
 
     _pmm_set_if_undef(ARG_BUILD missing)
     set(conan_install_cmd
-        "${CONAN_EXECUTABLE}" install "${src}"
+        "${PMM_CONAN_EXECUTABLE}" install "${src}"
             ${more_args}
             --generator cmake
             --build ${ARG_BUILD}
@@ -351,15 +351,15 @@ function(_pmm_conan)
 
     # Ensure that we have Conan
     _pmm_ensure_conan()
-    if(NOT CONAN_EXECUTABLE)
+    if(NOT PMM_CONAN_EXECUTABLE)
         message(SEND_ERROR "Cannot use Conan with PMM because we were unable to find/obtain a Conan executable.")
         return()
     endif()
-    if(NOT CONAN_PREV_EXE STREQUAL CONAN_EXECUTABLE)
-        _pmm_exec("${CONAN_EXECUTABLE}" --version)
+    if(NOT CONAN_PREV_EXE STREQUAL PMM_CONAN_EXECUTABLE)
+        _pmm_exec("${PMM_CONAN_EXECUTABLE}" --version)
         if(_PMM_RC)
-            set(exe "${CONAN_EXECUTABLE}")
-            unset(CONAN_EXECUTABLE CACHE)
+            set(exe "${PMM_CONAN_EXECUTABLE}")
+            unset(PMM_CONAN_EXECUTABLE CACHE)
             message(FATAL_ERROR "Conan executable (${exe}) seems invalid [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         endif()
         set(_prev "${PMM_CONAN_VERSION}")
@@ -374,11 +374,11 @@ function(_pmm_conan)
                 message(STATUS "[pmm] Conan version: ${PMM_CONAN_VERSION}")
             endif()
         else()
-            message(WARNING "Command (${CONAN_EXECUTABLE} --version) did not produce parseable output:\n${_PMM_OUTPUT}")
+            message(WARNING "Command (${PMM_CONAN_EXECUTABLE} --version) did not produce parseable output:\n${_PMM_OUTPUT}")
             set(PMM_CONAN_VERSION "Unknown" CACHE INTERNAL "Conan version")
         endif()
     endif()
-    set(CONAN_PREV_EXE "${CONAN_EXECUTABLE}" CACHE INTERNAL "Previous known-good Conan executable")
+    set(CONAN_PREV_EXE "${PMM_CONAN_EXECUTABLE}" CACHE INTERNAL "Previous known-good Conan executable")
 
     unset(conanfile)
     foreach(fname IN ITEMS conanfile.txt conanfile.py)
