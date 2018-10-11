@@ -275,6 +275,7 @@ function(_pmm_conan_install_1)
     # Install the thing
     # Do the regular install logic
     get_filename_component(conan_inc "${bin}/conanbuildinfo.cmake" ABSOLUTE)
+    get_filename_component(conan_timestamp_file "${bin}/conaninfo.txt" ABSOLUTE)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
 
     _pmm_conan_calc_settings_args(more_args)
@@ -298,7 +299,7 @@ function(_pmm_conan_install_1)
         )
     set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd.txt")
     set(do_install FALSE)
-    if("${conanfile}" IS_NEWER_THAN "${conan_inc}")
+    if("${conanfile}" IS_NEWER_THAN "${conan_timestamp_file}")
         set(do_install TRUE)
     endif()
     if(NOT EXISTS "${prev_cmd_file}")
