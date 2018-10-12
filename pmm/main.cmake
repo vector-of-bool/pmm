@@ -7,7 +7,7 @@ else()
 endif()
 
 if(WIN32)
-    set(_PMM_USER_DATA_DIR "$ENV{AppData}/pmm/${PMM_VERSION}")
+    set(_PMM_USER_DATA_DIR "$ENV{LocalAppData}/pmm/${PMM_VERSION}")
 elseif("$ENV{XDG_DATA_HOME}")
     set(_PMM_USER_DATA_DIR "$ENV{XDG_DATA_HOME}/pmm/${PMM_VERSION}")
 else()
