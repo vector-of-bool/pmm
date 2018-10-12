@@ -24,3 +24,35 @@ function(pmm)
         _pmm_lift(CMAKE_PREFIX_PATH)
     endif()
 endfunction()
+
+
+function(_pmm_script_main)
+    _pmm_parse_script_args(
+        -nocheck
+        . /Conan /Help
+        )
+    if(ARG_/Help)
+        message([[
+Available options:
+
+/Help
+    Display this help message
+
+/Conan
+    Perform a Conan action
+
+    /Version
+        Print the Conan version
+
+    /Create /Ref <ref>
+        Run `conan create . <ref>`.
+]])
+        return()
+    endif()
+
+    if(ARG_/Conan)
+        _pmm_script_main_conan(${ARG_UNPARSED_ARGUMENTS})
+    else()
+        message(FATAL_ERROR "PMM did not recognise the given argument list")
+    endif()
+endfunction()

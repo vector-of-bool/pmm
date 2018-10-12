@@ -3,16 +3,9 @@ set(PMM_CONAN_MAX_VERSION 1.8.9999  CACHE INTERNAL "Maximum Conan version we sup
 
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
-function(_pmm_get_conan_venv python_pkg)
-    set(msg "[pmm] Get Conan with ${python_pkg}")
+function(_pmm_get_conan_venv py_name py_exe)
+    set(msg "[pmm] Get Conan with ${py_name}")
     message(STATUS "${msg}")
-    find_package(${python_pkg} COMPONENTS Interpreter QUIET)
-    if(NOT TARGET ${python_pkg}::Interpreter)
-        # No good
-        message(STATUS "${msg} - Fail: No ${python_pkg} interpreter")
-        return()
-    endif()
-    get_target_property(py_exe "${python_pkg}::Interpreter" LOCATION)
     message(STATUS "${msg} - Candidate Python: ${py_exe} ")
 
     # Try to find a virtualenv module
@@ -134,11 +127,17 @@ function(_pmm_ensure_conan)
     message(STATUS "[pmm] No existing Conan installation found. We'll try to obtain one.")
 
     # No conan. Let's try to get it using Python
-    _pmm_get_conan_venv(Python3)
+    _pmm_find_python3(py3_exe)
+    if(py3_exe)
+        _pmm_get_conan_venv("Python 3" "${py3_exe}")
+    endif()
     if(PMM_CONAN_EXECUTABLE)
         return()
     endif()
-    _pmm_get_conan_venv(Python2)
+    _pmm_find_python2(py2_exe)
+    if(py2_exe)
+        _pmm_get_conan_venv("Python 2" "${py2_exe}")
+    endif()
 endfunction()
 
 function(_pmm_vs_version out)
@@ -395,4 +394,33 @@ function(_pmm_conan)
     _pmm_conan_install()
     _pmm_lift(CMAKE_MODULE_PATH)
     _pmm_lift(CMAKE_PREFIX_PATH)
+endfunction()
+
+
+function(_pmm_script_main_conan)
+    _pmm_parse_args(
+        . /Version /Create
+        - /Ref
+        )
+
+    if(ARG_/Version)
+        _pmm_ensure_conan()
+        execute_process(COMMAND "${PMM_CONAN_EXECUTABLE}" --version)
+        return()
+    endif()
+
+    if(ARG_/Create)
+        if(NOT ARG_/Ref)
+            message(FATAL_ERROR "Pass a /Ref when you pass /Create")
+        endif()
+        _pmm_ensure_conan()
+        execute_process(
+            COMMAND "${PMM_CONAN_EXECUTABLE}" create "${CMAKE_SOURCE_DIR}" "${ARG_/Ref}"
+            RESULT_VARIABLE retc
+            )
+        if(retc)
+            message(FATAL_ERROR "Conan process failed [${retc}]")
+        endif()
+        return()
+    endif()
 endfunction()
