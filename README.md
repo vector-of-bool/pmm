@@ -12,7 +12,7 @@ project.
 
 (As you are reading this, only Conan is supported.)
 
-## But This is Just *Another* Tool I have to Manager!
+## But This is Just *Another* Tool I have to Manage!
 
 Never fear! PMM is the lowest-maintenance software you will ever use.
 
@@ -90,6 +90,13 @@ pmm(
         # Set the --build option. (Default is `missing`)
         [BUILD <policy>]
     ]
+    # Use vcpkg
+    [VCPKG
+        # Specify the revision of vcpkg that you want to use (required)
+        REVISION <rev>
+        # Ensure the given packages are installed using vcpkg
+        [REQUIRES [req [...]]]
+    ]
 )
 ```
 
@@ -102,6 +109,8 @@ PMM will always use the `cmake` Conan generator, and will define imported
 targets for consumption (Equivalent of `conan_basic_setup(TARGETS)`). It will
 also set `CMAKE_PREFIX_PATH` and `CMAKE_MODULE_PATH` for you to use
 `find_package()` and `include()` against the installed dependencies.
+
+> **NOTE:** No other CMake variables from regular Conan usage are defined.
 
 `CONAN` mode requires a `conanfile.txt` or `conanfile.py` in your project
 source directory. It will run `conan install` against this file to obtain
@@ -120,3 +129,24 @@ The nitty-gritty of how PMM finds/obtains Conan:
     1. Check for a `venv` or `virtualenv` executable Python module.
     2. With a user-local virtualenv.
     3. Installs Conan *within the created virtualenv* and uses Conan from there.
+
+## `VCPKG` PMM mode
+
+In `VCPKG` mode, PMM will download the vcpkg repository at the given
+`REVISION`, build the `vcpkg` tool, and manage the package installation in a
+use-local data directory.
+
+`REVISION` should be a git tree-ish (A revision number (preferred), branch,
+or tag) that you could `git checkout` from the vcpkg repository. PMM will
+download the specified commit from GitHub and build the `vcpkg` command line
+too from source. **You will need `std::filesystem` support from your
+compiler and standard library.**
+
+`REQUIRES` is a list of packages that you would like to install using the
+`vcpkg` command line tool.
+
+When using PMM, you do not need to use the `vcpkg.cmake` CMake toolchain
+file: PMM will take care of this aspect for you.
+
+After calling `pmm(VCPKG)`, all you need to do is `find_package()` the
+packages that you want to use.

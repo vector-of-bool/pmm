@@ -15,16 +15,27 @@ else()
 endif()
 
 # The main function.
-function(pmm)
-    _pmm_parse_args(+ CONAN)
+function(_pmm)
+    _pmm_parse_args(+ CONAN VCPKG)
 
     if(DEFINED ARG_CONAN OR "CONAN" IN_LIST ARGV)
         _pmm_conan(${ARG_CONAN})
         _pmm_lift(CMAKE_MODULE_PATH)
         _pmm_lift(CMAKE_PREFIX_PATH)
     endif()
+    if(DEFINED ARG_VCPKG OR "VCPKG" IN_LIST ARGV)
+        _pmm_vcpkg(${ARG_VCPKG})
+    endif()
+    _pmm_lift(_PMM_INCLUDE)
 endfunction()
 
+macro(pmm)
+    unset(_PMM_INCLUDE)
+    _pmm(${ARGV})
+    foreach(inc IN LISTS _PMM_INCLUDE)
+        include(${inc})
+    endforeach()
+endmacro()
 
 function(_pmm_script_main)
     _pmm_parse_script_args(
