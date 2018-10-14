@@ -54,8 +54,10 @@ macro(_pmm_parse_arglist argv opt args list_args)
     endif()
 endmacro()
 
-macro(_pmm_lift varname)
-    set("${varname}" "${${varname}}" PARENT_SCOPE)
+macro(_pmm_lift)
+    foreach(varname IN ITEMS ${ARGN})
+        set("${varname}" "${${varname}}" PARENT_SCOPE)
+    endforeach()
 endmacro()
 
 function(_pmm_exec)
