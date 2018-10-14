@@ -1,10 +1,23 @@
+# Download vcpkg at revision `rev` and place the built result in `dir`
 function(_pmm_ensure_vcpkg dir rev)
-    set(PMM_VCPKG_EXECUTABLE "${dir}/vcpkg${CMAKE_EXECUTABLE_SUFFIX}" CACHE FILEPATH "Path to vcpkg for this project" FORCE)
+    # The final executable is deterministically placed:
+    set(PMM_VCPKG_EXECUTABLE "${dir}/vcpkg${CMAKE_EXECUTABLE_SUFFIX}"
+        CACHE FILEPATH
+        "Path to vcpkg for this project"
+        FORCE
+        )
+    # Check if the given directory already exists, which means we've already
+    # bootstrapped and installed it
     if(IS_DIRECTORY "${dir}")
         return()
     endif()
+    # We do the build in a temporary directory, then rename that temporary dir
+    # to the final dir
     set(tmp_dir "${_PMM_USER_DATA_DIR}/vcpkg-tmp")
+    # Ignore any existing temporary files. They shouldn't be there unless there
+    # was an error
     file(REMOVE_RECURSE "${tmp_dir}")
+    # Download the Zip archive from GitHub
     get_filename_component(vcpkg_zip "${dir}/../vcpkg-tmp.zip" ABSOLUTE)
     set(url "https://github.com/Microsoft/vcpkg/archive/${rev}.zip")
     message(STATUS "[pmm] Downloading vcpkg at ${rev} ...")
@@ -19,39 +32,42 @@ function(_pmm_ensure_vcpkg dir rev)
     if(rc)
         message(FATAL_ERROR "Failed to download vcpkg [${rc}]: ${msg}")
     endif()
+    # Extract the vcpkg archive into the temporary directory
     message(STATUS "[pmm] Extracting vcpkg archive...")
     file(MAKE_DIRECTORY "${tmp_dir}")
     execute_process(
         COMMAND ${CMAKE_COMMAND} -E tar xf "${vcpkg_zip}"
         WORKING_DIRECTORY "${tmp_dir}"
         )
+    # There should be one root directory that was extracted.
     file(GLOB vcpkg_root "${tmp_dir}/*")
     list(LENGTH vcpkg_root len)
     if(NOT len EQUAL 1)
         message(FATAL_ERROR "More than one directory extracted from downloaded vcpkg [??]")
     endif()
+    # Remove the zip file since we don't need it any more
     file(REMOVE "${vcpkg_zip}")
-    if(WIN32)
+    if(CMAKE_HOST_WIN32)
         set(bootstrap_ext bat)
     else()
         set(bootstrap_ext sh)
     endif()
-    message(STATUS "[pmm] Compiling vcpkg tool...")
-    try_compile(
-        vcpkg_did_compile
-        ${vcpkg_root}/build
-        ${vcpkg_root}/toolsrc
-        VCPKG
-        CMAKE_FLAGS -DCMAKE_BUILD_TYPE=Release
+    # Run the bootstrap script to prepare the tool
+    message(STATUS "[pmm] Bootstrapping the vcpkg tool...")
+    execute_process(
+        COMMAND
+            ${CMAKE_COMMAND} -E env
+                CC=${CMAKE_C_COMPILER}
+                CXX=${CMAKE_CXX_COMPILER}
+            "${vcpkg_root}/bootstrap-vcpkg.${bootstrap_ext}"
         OUTPUT_VARIABLE out
+        ERROR_VARIABLE out
+        RESULT_VARIABLE retc
         )
-    if(NOT vcpkg_did_compile)
-        message(FATAL_ERROR "Failed to compile vcpkg:\n${out}")
+    if(retc)
+        message(FATAL_ERROR "Failed to Bootstrap the vcpkg tool [${retc}]:\n${out}")
     endif()
-    file(RENAME
-        "${vcpkg_root}/build/vcpkg${CMAKE_EXECUTABLE_SUFFIX}"
-        "${vcpkg_root}/vcpkg${CMAKE_EXECUTABLE_SUFFIX}"
-        )
+    # Move the temporary directory to the final directory path
     file(REMOVE_RECURSE "${dir}")
     file(RENAME "${vcpkg_root}" "${dir}")
 endfunction()
@@ -73,7 +89,12 @@ function(_pmm_vcpkg)
     endif()
     if(ARG_REQUIRES)
         message(STATUS "[pmm] Installing requirements with vcpkg")
-        _pmm_exec("${PMM_VCPKG_EXECUTABLE}" install ${ARG_REQUIRES})
+        _pmm_exec(
+            ${CMAKE_COMMAND} -E env
+                CC=${CMAKE_C_COMPILER}
+                CXX=${CMAKE_CXX_COMPILER}
+            "${PMM_VCPKG_EXECUTABLE}" install ${ARG_REQUIRES}
+            )
         if(_PMM_RC)
             message(FATAL_ERROR "Failed to install requirements with vcpkg [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         endif()
