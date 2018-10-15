@@ -26,8 +26,8 @@ Using PMM is simple:
 2. In your `CMakeLists.txt`, add a line `include(pmm.cmake)`.
 3. Call the `pmm()` CMake function.
 
-That's it! The `pmm.cmake` file is just 26 (significant) lines of source
-code. Take a look inside if you doubt.
+That's it! The `pmm.cmake` file is just 23 significant lines. Take a look inside
+if you doubt.
 
 ## Wait... It's Downloading a Bunch of Stuff!
 
