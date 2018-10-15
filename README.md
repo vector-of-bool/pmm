@@ -5,7 +5,7 @@ PMM is a module for CMake that manages... package managers.
 ## Wha- Why?
 
 People hate installing new software. Especially when they already have a
-perfectly working tool already present. PMM uses the CMake scripting
+perfectly working tool present. PMM uses the CMake scripting
 language to manage external packaging tools. PMM will automatically
 download, install, and control package managers from within your CMake
 project.
@@ -148,7 +148,7 @@ use-local data directory.
 `REVISION` should be a git tree-ish (A revision number (preferred), branch,
 or tag) that you could `git checkout` from the vcpkg repository. PMM will
 download the specified commit from GitHub and build the `vcpkg` command line
-too from source. **You will need `std::filesystem` support from your
+tool from source. **You will need `std::filesystem` or `std::experimental::filesystem` support from your
 compiler and standard library.**
 
 `REQUIRES` is a list of packages that you would like to install using the
