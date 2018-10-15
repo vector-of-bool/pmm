@@ -408,8 +408,8 @@ endfunction()
 
 function(_pmm_script_main_conan)
     _pmm_parse_args(
-        . /Version /Create
-        - /Ref
+        . /Version /Create /Upload /Export
+        - /Ref /Remote
         )
 
     if(ARG_/Version)
@@ -418,9 +418,13 @@ function(_pmm_script_main_conan)
         return()
     endif()
 
+    if(ARG_/Create AND ARG_/Export)
+        message(FATAL_ERROR "/Export and /Create can not be specified together")
+    endif()
+
     if(ARG_/Create)
         if(NOT ARG_/Ref)
-            message(FATAL_ERROR "Pass a /Ref when you pass /Create")
+            message(FATAL_ERROR "Pass a /Ref for /Create")
         endif()
         _pmm_ensure_conan()
         execute_process(
@@ -428,8 +432,48 @@ function(_pmm_script_main_conan)
             RESULT_VARIABLE retc
             )
         if(retc)
-            message(FATAL_ERROR "Conan process failed [${retc}]")
+            message(FATAL_ERROR "Create failed [${retc}]")
         endif()
-        return()
+    endif()
+    if(ARG_/Export)
+        if(NOT ARG_/Ref)
+            message(FATAL_ERROR "Pass /Ref when for /Export")
+        endif()
+        _pmm_ensure_conan()
+        execute_process(
+            COMMAND "${PMM_CONAN_EXECUTABLE}" export "${CMAKE_SOURCE_DIR}" "${ARG_/Ref}"
+            RESULT_VARIABLE retc
+            )
+        if(retc)
+            message(FATAL_ERROR "Export failed [${retc}]")
+        endif()
+    endif()
+
+    if(ARG_/Upload)
+        _pmm_ensure_conan()
+        if(ARG_/Ref MATCHES ".+@.+")
+            set(full_ref "${ARG_/Ref}")
+        else()
+            _pmm_exec("${PMM_CONAN_EXECUTABLE}" info "${CMAKE_SOURCE_DIR}")
+            if(_PMM_RC)
+                message(FATAL_ERROR "Failed to get package info [${_PMM_RC}]:\n${_PMM_OUTPUT}")
+            endif()
+            if(NOT _PMM_OUTPUT MATCHES "([^\n]+)@PROJECT.*")
+                message(FATAL_ERROR "Can't parse Conan output [${_PMM_RC}]:\n${_PMM_OUTPUT}")
+            endif()
+            set(full_ref "${CMAKE_MATCH_1}@${ARG_/Ref}")
+        endif()
+        set(cmd "${PMM_CONAN_EXECUTABLE}" upload --confirm --check)
+        if(ARG_/Remote)
+            list(APPEND cmd --remote "${ARG_/Remote}")
+        endif()
+        list(APPEND cmd "${full_ref}")
+        execute_process(
+            COMMAND ${cmd}
+            RESULT_VARIABLE retc
+            )
+        if(retc)
+            message(FATAL_ERROR "Upload failed [${retc}]")
+        endif()
     endif()
 endfunction()

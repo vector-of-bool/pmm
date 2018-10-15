@@ -130,6 +130,15 @@ The nitty-gritty of how PMM finds/obtains Conan:
     2. With a user-local virtualenv.
     3. Installs Conan *within the created virtualenv* and uses Conan from there.
 
+### PMM Will Not do _Everything_ for You
+
+While PMM will ensure that Conan has been executed for you as part of your
+configure stage, it is up to you to provide a Conanfile that Conan can consume
+to get your dependency information.
+
+You will still need to read the Conan documentation to understand the basics of
+how to declare and consume your dependencies.
+
 ## `VCPKG` PMM mode
 
 In `VCPKG` mode, PMM will download the vcpkg repository at the given
@@ -150,3 +159,24 @@ file: PMM will take care of this aspect for you.
 
 After calling `pmm(VCPKG)`, all you need to do is `find_package()` the
 packages that you want to use.
+
+# Helper Commands
+
+Executing PMM in script mode provides some additional helper commands to work
+with your project.
+
+> NOTE: This will create a local copy of the PMM code in a `_pmm` directory. It
+> is safe to delete or `.gitignore` this directory.
+
+Get help with the `/Help` option:
+
+```sh
+> cmake -P pmm.cmake /Help
+```
+
+As an example, you can build, test, and upload your package all in one go with
+this command:
+
+```sh
+> cmake -P pmm.cmake /Conan /Create /Upload /Ref my-user/unstable /Remote some-remote
+```

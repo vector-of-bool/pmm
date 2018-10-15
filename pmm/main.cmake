@@ -42,7 +42,7 @@ function(_pmm_script_main)
         . /Conan /Help
         )
     if(ARG_/Help)
-        message([[
+        message([===[
 Available options:
 
 /Help
@@ -54,9 +54,22 @@ Available options:
     /Version
         Print the Conan version
 
-    /Create /Ref <ref>
+    /Export /Ref <ref> [/Upload [/Remote <remote>]]
+        Run `conan export . <ref>`.
+
+        With `/Upload`, will also upload the package after export.
+
+    /Create /Ref <ref> [/Upload [/Remote <remote>]]
         Run `conan create . <ref>`.
-]])
+
+        With `/Upload`, will also upload the package after creation.
+
+    /Upload /Ref <ref> [/Remote <remote>]
+        Upload the current package (should have already been exported).
+
+        `<ref>` may be a partial `user/channel` reference. In this case the full
+        ref will be obtained using the project in the current directory.
+]===])
         return()
     endif()
 
