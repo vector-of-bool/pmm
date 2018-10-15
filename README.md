@@ -10,7 +10,7 @@ language to manage external packaging tools. PMM will automatically
 download, install, and control package managers from within your CMake
 project.
 
-(As you are reading this, only Conan is supported.)
+(As you are reading this, only Conan and VCPKG are supported.)
 
 ## But This is Just *Another* Tool I have to Manage!
 
