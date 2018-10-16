@@ -340,10 +340,21 @@ macro(_pmm_conan_do_setup)
 endmacro()
 
 macro(_pmm_conan_install)
-    _pmm_conan_install_1()
+    if(CONAN_EXPORTED AND CONAN_IN_LOCAL_CACHE)
+        # When we are being built by conan in the local cache directory we don't need
+        # to do an actual conan install: It has already been done for us.
+        set(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake")
+        message(STATUS "[pmm] We are being built by Conan, so we won't run the install step.")
+        message(STATUS "[pmm] Assuming ${__conan_inc} is present.")
+    else()
+        _pmm_conan_install_1()
+    endif()
     include("${__conan_inc}" OPTIONAL RESULT_VARIABLE __was_included)
     if(NOT __was_included)
-        message(SEND_ERROR "Conan dependencies were not imported (Expected file ${__conan_inc}). You may need to run Conan manually (from the build directory).")
+        message(SEND_ERROR
+            "Conan dependencies were not imported (Expected file ${__conan_inc}). "
+            "You may need to run Conan manually (from the build directory). "
+            "Ensure you are using the 'cmake' generator.")
     else()
         _pmm_conan_do_setup()
     endif()
@@ -397,7 +408,7 @@ function(_pmm_conan)
         endif()
     endforeach()
 
-    if(NOT DEFINED conanfile)
+    if(NOT DEFINED conanfile AND NOT (CONAN_EXPORTED AND CONAN_IN_LOCAL_CACHE))
         message(FATAL_ERROR "pf(CONAN) requires a Conanfile in your project source directory")
     endif()
     _pmm_conan_install()
