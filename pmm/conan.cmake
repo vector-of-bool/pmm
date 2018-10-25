@@ -413,6 +413,11 @@ function(_pmm_conan)
         + SETTINGS OPTIONS
         )
 
+    get_cmake_property(__was_setup _PMM_CONAN_WAS_SETUP)
+    if(__was_setup)
+        _pmm_log(WARNING "pmm(CONAN) ran more than once during configure. This is not supported.")
+    endif()
+
     # Ensure that we have Conan
     _pmm_ensure_conan()
     if(NOT PMM_CONAN_EXECUTABLE)
@@ -469,6 +474,8 @@ function(_pmm_conan)
     # Lift these env vars so that they are visible after pmm() returns
     _pmm_lift(CMAKE_MODULE_PATH)
     _pmm_lift(CMAKE_PREFIX_PATH)
+    # Mark that we successfully ran Conan
+    set_property(GLOBAL PROPERTY _PMM_CONAN_WAS_SETUP TRUE)
 endfunction()
 
 
