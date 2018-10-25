@@ -20,7 +20,7 @@ function(_pmm_ensure_vcpkg dir rev)
     # Download the Zip archive from GitHub
     get_filename_component(vcpkg_zip "${dir}/../vcpkg-tmp.zip" ABSOLUTE)
     set(url "https://github.com/Microsoft/vcpkg/archive/${rev}.zip")
-    message(STATUS "[pmm] Downloading vcpkg at ${rev} ...")
+    _pmm_log("Downloading vcpkg at ${rev} ...")
     file(
         DOWNLOAD "${url}" "${vcpkg_zip}"
         STATUS st
@@ -33,7 +33,7 @@ function(_pmm_ensure_vcpkg dir rev)
         message(FATAL_ERROR "Failed to download vcpkg [${rc}]: ${msg}")
     endif()
     # Extract the vcpkg archive into the temporary directory
-    message(STATUS "[pmm] Extracting vcpkg archive...")
+    _pmm_log("Extracting vcpkg archive...")
     file(MAKE_DIRECTORY "${tmp_dir}")
     execute_process(
         COMMAND ${CMAKE_COMMAND} -E tar xf "${vcpkg_zip}"
@@ -53,7 +53,7 @@ function(_pmm_ensure_vcpkg dir rev)
         set(bootstrap_ext sh)
     endif()
     # Run the bootstrap script to prepare the tool
-    message(STATUS "[pmm] Bootstrapping the vcpkg tool...")
+    _pmm_log("Bootstrapping the vcpkg tool...")
     execute_process(
         COMMAND
             ${CMAKE_COMMAND} -E env
@@ -85,10 +85,10 @@ function(_pmm_vcpkg)
     set(prev "${PMM_VCPKG_EXECUTABLE}")
     _pmm_ensure_vcpkg("${vcpkg_inst_dir}" "${ARG_REVISION}")
     if(NOT prev STREQUAL PMM_VCPKG_EXECUTABLE)
-        message(STATUS "[pmm] Using vcpkg executable: ${PMM_VCPKG_EXECUTABLE}")
+        _pmm_log("Using vcpkg executable: ${PMM_VCPKG_EXECUTABLE}")
     endif()
     if(ARG_REQUIRES)
-        message(STATUS "[pmm] Installing requirements with vcpkg")
+        _pmm_log("Installing requirements with vcpkg")
         _pmm_exec(
             ${CMAKE_COMMAND} -E env
                 CC=${CMAKE_C_COMPILER}

@@ -16,7 +16,17 @@ endif()
 
 # The main function.
 function(_pmm)
-    _pmm_parse_args(+ CONAN VCPKG)
+    _pmm_parse_args(
+        . DEBUG VERBOSE
+        + CONAN VCPKG
+        )
+
+    if(ARG_DEBUG)
+        set(PMM_DEBUG TRUE)
+    endif()
+    if(ARG_VERBOSE)
+        set(PMM_VERBOSE TRUE)
+    endif()
 
     if(DEFINED ARG_CONAN OR "CONAN" IN_LIST ARGV)
         _pmm_conan(${ARG_CONAN})

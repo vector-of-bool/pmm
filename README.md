@@ -81,6 +81,10 @@ The `pmm()` signature:
 
 ```cmake
 pmm(
+    # Enable verbose logging
+    [VERBOSE]
+    # Enable debug logging (implies VERBOSE)
+    [DEBUG]
     # Use Conan
     [CONAN
         # Set additional --setting flags
