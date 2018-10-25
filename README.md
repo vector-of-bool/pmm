@@ -131,7 +131,7 @@ The nitty-gritty of how PMM finds/obtains Conan:
 3. If still no Conan, attempts to obtain one automatically, trying first
    Python 3, then Python 2:
     1. Check for a `venv` or `virtualenv` executable Python module.
-    2. With a user-local virtualenv.
+    2. Create a user-local virtualenv.
     3. Installs Conan *within the created virtualenv* and uses Conan from there.
 
 ### PMM Will Not do _Everything_ for You
