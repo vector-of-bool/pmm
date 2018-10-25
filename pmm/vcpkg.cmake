@@ -6,6 +6,7 @@ function(_pmm_ensure_vcpkg dir rev)
         "Path to vcpkg for this project"
         FORCE
         )
+    _pmm_log(DEBUG "Expecting vcpkg executable at ${PMM_VCPKG_EXECUTABLE}")
     # Check if the given directory already exists, which means we've already
     # bootstrapped and installed it
     if(IS_DIRECTORY "${dir}")
@@ -21,6 +22,7 @@ function(_pmm_ensure_vcpkg dir rev)
     get_filename_component(vcpkg_zip "${dir}/../vcpkg-tmp.zip" ABSOLUTE)
     set(url "https://github.com/Microsoft/vcpkg/archive/${rev}.zip")
     _pmm_log("Downloading vcpkg at ${rev} ...")
+    _pmm_log(VERBOSE "vcpkg ZIP archive lives at ${url}")
     file(
         DOWNLOAD "${url}" "${vcpkg_zip}"
         STATUS st
@@ -53,7 +55,7 @@ function(_pmm_ensure_vcpkg dir rev)
         set(bootstrap_ext sh)
     endif()
     # Run the bootstrap script to prepare the tool
-    _pmm_log("Bootstrapping the vcpkg tool...")
+    _pmm_log("Bootstrapping the vcpkg tool (This may take a minute)...")
     execute_process(
         COMMAND
             ${CMAKE_COMMAND} -E env
@@ -70,6 +72,7 @@ function(_pmm_ensure_vcpkg dir rev)
     # Move the temporary directory to the final directory path
     file(REMOVE_RECURSE "${dir}")
     file(RENAME "${vcpkg_root}" "${dir}")
+    _pmm_log("vcpkg successfully bootstrapped to ${dir}")
 endfunction()
 
 function(_pmm_vcpkg)
@@ -82,6 +85,7 @@ function(_pmm_vcpkg)
         message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION 43deeaf0c8b6086310ee753be2e93c941f7ffd75`")
     endif()
     get_filename_component(vcpkg_inst_dir "${_PMM_USER_DATA_DIR}/vcpkg-${ARG_REVISION}" ABSOLUTE)
+    _pmm_log(DEBUG "vcpkg directory is ${vcpkg_inst_dir}")
     set(prev "${PMM_VCPKG_EXECUTABLE}")
     _pmm_ensure_vcpkg("${vcpkg_inst_dir}" "${ARG_REVISION}")
     if(NOT prev STREQUAL PMM_VCPKG_EXECUTABLE)
@@ -89,12 +93,13 @@ function(_pmm_vcpkg)
     endif()
     if(ARG_REQUIRES)
         _pmm_log("Installing requirements with vcpkg")
-        _pmm_exec(
-            ${CMAKE_COMMAND} -E env
+        set(cmd ${CMAKE_COMMAND} -E env
                 CC=${CMAKE_C_COMPILER}
                 CXX=${CMAKE_CXX_COMPILER}
             "${PMM_VCPKG_EXECUTABLE}" install ${ARG_REQUIRES}
             )
+        _pmm_log(VERBOSE "Run vcpkg command: ${cmd}")
+        _pmm_exec(${cmd})
         if(_PMM_RC)
             message(FATAL_ERROR "Failed to install requirements with vcpkg [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         endif()
