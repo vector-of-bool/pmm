@@ -36,6 +36,9 @@ if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
     _pmm_changes(1.0.1
         "Fixes for building a CMake project inside of the Conan local cache"
         )
+    _pmm_changes(1.0.2
+        "DEBUG and VERBOSE logging options."
+        )
     _pmm_log("To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
     _pmm_log("You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
 endif()
