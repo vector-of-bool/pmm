@@ -74,8 +74,13 @@ For temporary changes, set `PMM_URL` before including `pmm.cmake`
 
 The only interface to PMM (after including `pmm.cmake`) is the `pmm()`
 CMake function. Using it is very simple. At the time or writing, `pmm()`
-only supports Conan, but other packaging solutions will be supported in the
-future.
+only supports Conan and vcpkg, but other packaging solutions may be supported
+in the future.
+
+The `VERBOSE` and `DEBUG` options enable verbose and debug logging,
+respectively. You may set `PMM_{DEBUG,VERBOSE}` before `include(pmm.cmake)` to
+enable these options globally and see information about the PMM bootstrapping
+process.
 
 The `pmm()` signature:
 
