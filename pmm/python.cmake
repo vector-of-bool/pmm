@@ -1,4 +1,5 @@
 function(_pmm_find_python3 ovar)
+    file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/3.*/bin")
     find_program(
         _ret
         NAMES
@@ -12,6 +13,8 @@ function(_pmm_find_python3 ovar)
             python3.1
             python3.0
             python3
+        HINTS
+            ${pyenv_dirs}
         PATHS
             C:/Python38
             C:/Python37
@@ -29,11 +32,14 @@ function(_pmm_find_python3 ovar)
 endfunction()
 
 function(_pmm_find_python2 ovar)
+    file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/2.*/bin")
     find_program(
         _ret
         NAMES
             python2.8 # ... Just in case
             python2.7
+        HINTS
+            ${pyenv_dirs}
         PATHS
             C:/Python27
             C:/Python2
