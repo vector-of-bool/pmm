@@ -98,6 +98,8 @@ pmm(
         [OPTIONS ...]
         # Set the --build option. (Default is `missing`)
         [BUILD <policy>]
+        # Ensure remotes are present before installing
+        [REMOTES [<name>[::no_verify] <url> [...]]]
     ]
     # Use vcpkg
     [VCPKG
