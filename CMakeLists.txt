@@ -5,7 +5,9 @@ set(PMM_ALWAYS_DOWNLOAD TRUE)
 set(PMM_URL "file://${PROJECT_SOURCE_DIR}/pmm")
 set(PMM_DEBUG TRUE)
 include(pmm.cmake)
-pmm(CONAN)
+pmm(CONAN
+    REMOTES vob https://api.bintray.com/conan/vector-of-bool/vector-of-bool
+    )
 include(latest-info.cmake)
 
 file(GLOB_RECURSE pmm_sources CONFIGURE_DEPENDS pmm/*)
