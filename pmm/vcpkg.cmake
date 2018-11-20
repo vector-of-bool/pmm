@@ -82,7 +82,13 @@ function(_pmm_vcpkg)
         )
 
     if(NOT DEFINED ARG_REVISION)
-        message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION 43deeaf0c8b6086310ee753be2e93c941f7ffd75`")
+        # This is just a random revision people can plop down in for the REVISION
+        # argument. There isn't anything significant about this particular
+        # revision, other than being the revision of the `master` branch at the
+        # time I typed this comment. If you are modifying PMM, feel free to
+        # change this revision number to whatever is the latest in the vcpkg
+        # repository. (https://github.com/Microsoft/vcpkg)
+        message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION 2a283bd5224b5335a90539faa1b0ac7260411465`")
     endif()
     get_filename_component(vcpkg_inst_dir "${_PMM_USER_DATA_DIR}/vcpkg-${ARG_REVISION}" ABSOLUTE)
     _pmm_log(DEBUG "vcpkg directory is ${vcpkg_inst_dir}")
