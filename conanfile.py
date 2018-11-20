@@ -5,7 +5,10 @@ class PMM(conans.ConanFile):
     version = '1.1.0'
     settings = None
     exports_sources = '*'
-    generators = 'cmake'
+    build_requires = (
+        'libman-generator/[*]@vector-of-bool/test'
+    )
+    generators = 'cmake', 'LibMan'
 
     def build(self):
         cmake = conans.CMake(self)
