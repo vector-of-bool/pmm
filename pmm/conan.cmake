@@ -1,5 +1,5 @@
 set(PMM_CONAN_MIN_VERSION 1.8.0     CACHE INTERNAL "Minimum Conan version we support")
-set(PMM_CONAN_MAX_VERSION 1.8.9999  CACHE INTERNAL "Maximum Conan version we support")
+set(PMM_CONAN_MAX_VERSION 1.9.9999  CACHE INTERNAL "Maximum Conan version we support")
 
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
@@ -22,7 +22,7 @@ function(_pmm_get_conan_venv py_name py_exe)
         _pmm_log("${msg} - Fail: No virtualenv module")
         return()
     endif()
-    _pmm_log(VERBOSE "${msg} using Python virtualenv module '${cand}'")
+    _pmm_log(VERBOSE "${msg} using Python virtualenv module '${venv_mod}'")
 
     # Now create a new virtualenv
     file(REMOVE_RECURSE "${_PMM_CONAN_VENV_DIR}")
@@ -57,7 +57,7 @@ function(_pmm_get_conan_venv py_name py_exe)
 
     # Finally, install Conan inside the virtualenv.
     _pmm_log("${msg} - Install Conan")
-    _pmm_exec("${venv_py}" -m pip install -q conan==1.8.2)
+    _pmm_exec("${venv_py}" -m pip install -q conan<${PMM_CONAN_MAX_VERSION})
     if(_PMM_RC)
         _pmm_log(WARNING "Failed to install Conan in virtualenv [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         _pmm_log("${msg} - Fail: Could not install Conan in virtualenv")
