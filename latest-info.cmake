@@ -7,7 +7,7 @@ function(_pmm_changes version)
     endif()
 endfunction()
 
-set(PMM_LATEST_VERSION 1.1.0)
+set(PMM_LATEST_VERSION 1.1.1)
 
 if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
     message(STATUS "[pmm] You are using PMM version ${PMM_VERSION}. The latest is ${PMM_LATEST_VERSION}.")
@@ -44,6 +44,10 @@ if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
         )
     _pmm_changes(1.1.0
         "Support a REMOTES argument in Conan mode to add remotes before performing installation"
+        )
+    _pmm_changes(1.1.1
+        "[experimental] Preliminary support for libman"
+        "Now installs latest supported version of Conan rather than a specific version"
         )
     message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
     message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
