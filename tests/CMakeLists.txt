@@ -21,3 +21,5 @@ if(DOCKER_EXECUTABLE AND (run_docker_tests_env OR run_docker_tests_env STREQUAL 
             )
     endforeach()
 endif()
+
+add_subdirectory(ci)
