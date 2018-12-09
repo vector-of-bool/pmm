@@ -8,7 +8,7 @@ jobs:
     pool:
       vmImage: vs2017-win2016
     steps:
-      - script: cmake -P ci/ci.cmake
+      - script: cmake -P ci.cmake
         displayName: Run all tests
 
   - job: LinuxDockerTests
