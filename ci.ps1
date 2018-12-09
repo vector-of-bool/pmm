@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 $cc = ""
 $cxx = ""
 
-if ($PSVersionTable.OS.StartsWith("Darwin")) {
+if ($PSVersionTable.OS -and $PSVersionTable.OS.StartsWith("Darwin")) {
     # We're on macOS, and we need a newer GCC for the FS TS
     & brew install gcc6
     if ($LASTEXITCODE) {

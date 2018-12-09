@@ -8,27 +8,23 @@ jobs:
     pool:
       vmImage: vs2017-win2016
     steps:
+      - script: choco install ninja
+        displayName: Install Ninja
       - script: >
           call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
-          cmake -P ci.cmake
-        env:
-          CC: cl
-          CXX: cl
-          PMM_DOCKER_TESTS: 'NO'
-        displayName: Run all tests
+          powershell ./ci.ps1 -ForceMSVC
+        displayName: Run tests
 
   - job: MinGW
     pool:
       vmImage: vs2017-win2016
     steps:
+      - script: choco install ninja
+        displayName: Install Ninja
       - script: >
           call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
-          cmake -P ci.cmake
-        env:
-          CC: gcc
-          CXX: g++
-          PMM_DOCKER_TESTS: 'NO'
-        displayName: Run all tests
+          powershell ./ci.ps1
+        displayName: Run tests
 
   - job: LinuxDocker
     pool:
@@ -41,5 +37,5 @@ jobs:
           sudo cp -v ninja /usr/local/bin/
           sudo apt-get install -y python3-venv
         displayName: Prepare System
-      - powershell: ./ci.ps1 -RunDockerTests
+      - script: pwsh ./ci.ps1 -RunDockerTests
         displayName: Run tests
