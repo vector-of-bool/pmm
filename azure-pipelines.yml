@@ -35,6 +35,12 @@ jobs:
       vmImage: ubuntu-16.04
 
     steps:
+      - script: |
+          curl -Ls https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o ninja-linux.zip
+          unzip ninja-linux.zip
+          sudo cp -v ninja /usr/local/bin/
+          sudo apt-get install -y python3-venv
+        displayName: Prepare System
       - script: cmake -P ci.cmake
         env:
           PMM_DOCKER_TESTS: 'TRUE'

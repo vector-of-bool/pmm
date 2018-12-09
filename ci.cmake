@@ -7,9 +7,9 @@ endfunction()
 
 if(WIN32)
     exec_checked("Install ninja-build" choco install ninja)
-    find_program(NINJA_EXECUTABLE ninja)
 endif()
 
+find_program(NINJA_EXECUTABLE ninja)
 if(NOT NINJA_EXECUTABLE)
     message(FATAL_ERROR "No ninja executable for building")
 endif()
