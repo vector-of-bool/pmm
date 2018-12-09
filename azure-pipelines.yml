@@ -39,3 +39,15 @@ jobs:
         displayName: Prepare System
       - script: pwsh ./ci.ps1 -RunDockerTests -NoCITestDir
         displayName: Run tests
+
+  - job: macOS
+    pool:
+      vmImage: macos-10.13
+    steps:
+      - script: |
+          curl -Ls https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip -o ninja-mac.zip
+          unzip ninja-mac.zip
+          sudo cp -v ninja /usr/local/bin/
+        displayName: Prepare System
+      - script: pwsh ./ci.ps1
+        displayName: Run tests
