@@ -4,22 +4,34 @@
 # https://aka.ms/yaml
 
 jobs:
-  - job: Windows
+  - job: MSVC
     pool:
       vmImage: vs2017-win2016
     steps:
       - script: cmake -P ci.cmake
+        env:
+          CC: cl
+          CXX: cl
+          PMM_DOCKER_TESTS: 'NO'
         displayName: Run all tests
 
-  - job: LinuxDockerTests
+  - job: MinGW
     pool:
-      vmImage: 'Ubuntu 16.04'
+      vmImage: vs2017-win2016
+    steps:
+      - script: cmake -P ci.cmake
+        env:
+          CC: gcc
+          CXX: g++
+          PMM_DOCKER_TESTS: 'NO'
+        displayName: Run all tests
+
+  - job: LinuxDocker
+    pool:
+      vmImage: ubuntu-16.04
 
     steps:
-    - script: echo Hello, world!
-      displayName: 'Run a one-line script'
-
-    - script: |
-        echo Add other tasks to build, test, and deploy your project.
-        echo See https://aka.ms/yaml
-      displayName: 'Run a multi-line script'
+      - script: cmake -P ci.cmake
+        env:
+          PMM_DOCKER_TESTS: 'TRUE'
+        displayName: Run Docker tests

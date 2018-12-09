@@ -9,7 +9,8 @@ set(DOCKER_TESTS
 
 get_filename_component(DOCKER_TEST_SCRIPT RunDockerTest.cmake ABSOLUTE)
 
-if(DOCKER_EXECUTABLE)
+set(run_docker_tests_env "$ENV{PMM_DOCKER_TESTS}")
+if(DOCKER_EXECUTABLE AND (run_docker_tests_env OR run_docker_tests_env STREQUAL ""))
     foreach(test IN LISTS DOCKER_TESTS)
         add_test(
             NAME docker.${test}
