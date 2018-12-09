@@ -5,6 +5,15 @@ function(exec_checked message)
     endif()
 endfunction()
 
+if(WIN32)
+    exec_checked("Install ninja-build" choco install ninja)
+    find_program(NINJA_EXECUTABLE ninja)
+endif()
+
+if(NOT NINJA_EXECUTABLE)
+    message(FATAL_ERROR "No ninja executable for building")
+endif()
+
 if(APPLE)
     exec_checked("Install GCC 6 for the C++ FS TS" brew install gcc6)
     file(GLOB gcc_exe /usr/local/Cellar/gcc@6/*/*/gcc)
@@ -20,7 +29,7 @@ file(REMOVE_RECURSE "${bin}")
 
 exec_checked("Configure project"
     "${CMAKE_COMMAND}" -E env ${env_params}
-        "${CMAKE_COMMAND}" "-H${src}" "-B${bin}"
+        "${CMAKE_COMMAND}" -GNinja "-H${src}" "-B${bin}"
     )
 
 exec_checked("Build project"
