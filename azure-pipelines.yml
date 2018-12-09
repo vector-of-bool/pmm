@@ -37,5 +37,5 @@ jobs:
           sudo cp -v ninja /usr/local/bin/
           sudo apt-get install -y python3-venv
         displayName: Prepare System
-      - script: pwsh ./ci.ps1 -RunDockerTests
+      - script: pwsh ./ci.ps1 -RunDockerTests -NoCITestDir
         displayName: Run tests

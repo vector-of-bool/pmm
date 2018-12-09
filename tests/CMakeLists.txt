@@ -22,4 +22,6 @@ if(DOCKER_EXECUTABLE AND RUN_DOCKER_TESTS)
     endforeach()
 endif()
 
-add_subdirectory(ci)
+if(NOT NO_CI_TEST_DIR)
+    add_subdirectory(ci)
+endif()

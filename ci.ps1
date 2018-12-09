@@ -4,7 +4,10 @@ param(
     $RunDockerTests,
     # Forcibly set CC and CXX to MSVC cl.exe
     [switch]
-    $ForceMSVC
+    $ForceMSVC,
+    # Ignore the `ci/` tests directory
+    [switch]
+    $NoCITestDir
 )
 
 $ErrorActionPreference = "Stop"
@@ -48,8 +51,15 @@ $run_docker_tests = "FALSE"
 if ($RunDockerTests) {
     $run_docker_tests = "TRUE"
 }
+$no_ci_test_dir = "FALSE"
+if ($NoCITestDir) {
+    $no_ci_test_dir = "TRUE"
+}
 
-& $cmake -E env CC=$cc CXX=$cxx $cmake -GNinja "-DRUN_DOCKER_TESTS:BOOL=$run_docker_tests" "-H$source_dir" "-B$bin_dir"
+& $cmake -E env CC=$cc CXX=$cxx $cmake -GNinja `
+    "-DRUN_DOCKER_TESTS:BOOL=$run_docker_tests" `
+    "-DNO_CI_TEST_DIR:BOOL=$no_ci_test_dir" `
+    "-H$source_dir" "-B$bin_dir"
 if ($LASTEXITCODE) {
     throw "CMake configure failed [$LASTEXITCODE]"
 }
