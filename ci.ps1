@@ -1,0 +1,1 @@
+Write-Information "I am a PowerShell script!"

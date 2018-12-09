@@ -35,6 +35,7 @@ jobs:
       vmImage: ubuntu-16.04
 
     steps:
+      - powershell: ./ci.ps1
       - script: |
           curl -Ls https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o ninja-linux.zip
           unzip ninja-linux.zip
