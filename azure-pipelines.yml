@@ -8,8 +8,8 @@ jobs:
     pool:
       vmImage: vs2017-win2016
     steps:
-      - script: &win-ci-command
-          call C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd -arch=x64 &&
+      - script: >
+          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
           cmake -P ci.cmake
         env:
           CC: cl
@@ -21,7 +21,9 @@ jobs:
     pool:
       vmImage: vs2017-win2016
     steps:
-      - script: *win-ci-command
+      - script: >
+          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
+          cmake -P ci.cmake
         env:
           CC: gcc
           CXX: g++
