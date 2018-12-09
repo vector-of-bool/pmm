@@ -5,10 +5,6 @@ function(exec_checked message)
     endif()
 endfunction()
 
-if(WIN32)
-    exec_checked("Install Python 3 via Chocolatey" choco install python3)
-endif()
-
 if(APPLE)
     exec_checked("Install GCC 6 for the C++ FS TS" brew install gcc6)
     file(GLOB gcc_exe /usr/local/Cellar/gcc@6/*/*/gcc)
