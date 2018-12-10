@@ -21,7 +21,7 @@ if ($PSVersionTable.OS -and $PSVersionTable.OS.StartsWith("Darwin")) {
     if ($LASTEXITCODE) {
         throw "Brew installation failed!"
     }
-    $cc = (Get-ChildItem '/usr/local/Cellar/gcc@6/*/*/gcc').FullName
+    $cc = (Get-ChildItem '/usr/local/Cellar/gcc@6/*/bin/gcc').FullName
     $cxx = (Join-Path (Split-Path $cc -Parent) "g++")
 }
 
