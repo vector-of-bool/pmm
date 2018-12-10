@@ -12,9 +12,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$cc = ""
-$cxx = ""
-
 Get-ChildItem
 
 if ($PSVersionTable.OS -and $PSVersionTable.OS.StartsWith("Darwin")) {
@@ -23,23 +20,17 @@ if ($PSVersionTable.OS -and $PSVersionTable.OS.StartsWith("Darwin")) {
     if ($LASTEXITCODE) {
         throw "Brew installation failed!"
     }
-    $cc = $null
-    $candidates = (Get-ChildItem '/usr/local/Cellar/gcc@6' -Recurse -Include "gcc")
-    Write-Host "Candidate GCCs:"
-    $candidates | Write-Host
-    foreach ($item in $candidates) {
-        $cmd = Get-Command $item.FullName -ErrorAction Ignore
-        if ($cmd) {
-            $cc = $item.FullName
-            break;
-        }
-    }
+    $cc = Get-ChildItem '/usr/local/Cellar/gcc@6/*/*/gcc'
     $cxx = (Join-Path (Split-Path $cc -Parent) "g++")
+    Write-Host "Using C compiler $cc"
+    Write-Host "Using C++ compiler $cxx"
+    $env:CC = $cc
+    $env:CXX = $cxx
 }
 
 if ($ForceMSVC) {
-    $cc = "cl"
-    $cxx = "cl"
+    $env:CC = "cl"
+    $env:CXX = "cl"
 }
 
 $cmake = (Get-Command -Name cmake).Source
@@ -55,7 +46,7 @@ if (! $ninja) {
 $source_dir = $PSScriptRoot
 $bin_dir = Join-Path $source_dir "ci-build"
 
-if (TEst-Path $bin_dir) {
+if (Test-Path $bin_dir) {
     Remove-Item -Recurse $bin_dir -Force
 }
 
@@ -68,7 +59,7 @@ if ($NoCITestDir) {
     $no_ci_test_dir = "TRUE"
 }
 
-& $cmake -E env CC=$cc CXX=$cxx $cmake -GNinja `
+& $cmake -GNinja `
     "-DRUN_DOCKER_TESTS:BOOL=$run_docker_tests" `
     "-DNO_CI_TEST_DIR:BOOL=$no_ci_test_dir" `
     "-H$source_dir" "-B$bin_dir"
@@ -76,7 +67,7 @@ if ($LASTEXITCODE) {
     throw "CMake configure failed [$LASTEXITCODE]"
 }
 
-& $cmake -E env CC=$cc CXX=$cxx $cmake --build $bin_dir
+& $cmake --build $bin_dir
 if ($LASTEXITCODE) {
     throw "CMake build failed [$LASTEXITCODE]"
 }
