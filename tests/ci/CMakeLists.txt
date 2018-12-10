@@ -1,6 +1,7 @@
 foreach(subdir
         conan
         vcpkg
+        cmcm
         )
     get_filename_component(fulldir ${subdir} ABSOLUTE)
     add_test(
