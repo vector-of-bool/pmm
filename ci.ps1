@@ -15,13 +15,22 @@ $ErrorActionPreference = "Stop"
 $cc = ""
 $cxx = ""
 
+Get-ChildItem
+
 if ($PSVersionTable.OS -and $PSVersionTable.OS.StartsWith("Darwin")) {
     # We're on macOS, and we need a newer GCC for the FS TS
     & brew install gcc6
     if ($LASTEXITCODE) {
         throw "Brew installation failed!"
     }
-    $cc = (Get-ChildItem '/usr/local/Cellar/gcc@6/*/bin/gcc').FullName
+    $cc = $null
+    foreach ($item in (Get-ChildItem '/usr/local/Cellar/gcc@6' -Recurse -Include "gcc")) {
+        $cmd = Get-Command $item.FullName -ErrorAction Ignore
+        if ($cmd) {
+            $cc = $item.FullName
+            break;
+        }
+    }
     $cxx = (Join-Path (Split-Path $cc -Parent) "g++")
 }
 
