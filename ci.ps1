@@ -20,12 +20,10 @@ if ($PSVersionTable.OS -and $PSVersionTable.OS.StartsWith("Darwin")) {
     if ($LASTEXITCODE) {
         throw "Brew installation failed!"
     }
-    $cc = Get-ChildItem '/usr/local/Cellar/gcc@6/*/*/gcc'
-    $cxx = (Join-Path (Split-Path $cc -Parent) "g++")
-    Write-Host "Using C compiler $cc"
-    Write-Host "Using C++ compiler $cxx"
-    $env:CC = $cc
-    $env:CXX = $cxx
+    $cc = Get-ChildItem '/usr/local/Cellar/gcc@6/*/bin/gcc-6'
+    $cxx = Get-ChildItem '/usr/local/Cellar/gcc@6/*/bin/g++-6'
+    $env:CC = $cc.FullName
+    $env:CXX = $cxx.FullName
 }
 
 if ($ForceMSVC) {
