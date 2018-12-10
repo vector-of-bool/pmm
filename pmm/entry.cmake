@@ -54,7 +54,7 @@ function(_pmm_download url dest)
     endif()
 endfunction()
 
-foreach(fname IN ITEMS util.cmake python.cmake conan.cmake vcpkg.cmake main.cmake)
+foreach(fname IN ITEMS util.cmake python.cmake conan.cmake vcpkg.cmake cmcm.cmake main.cmake)
     get_filename_component(_dest "${PMM_DIR}/${fname}" ABSOLUTE)
     _pmm_download("${PMM_URL}/${fname}" "${_dest}")
     include("${_dest}")
