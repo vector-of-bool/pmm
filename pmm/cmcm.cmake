@@ -1,9 +1,17 @@
 function(_pmm_cmcm)
     _pmm_parse_args(
+        . ROLLING
         - FROM
         )
     if(NOT ARG_FROM)
+        if(NOT ARG_ROLLING)
+            message(FATAL_ERROR "You must specify either ROLLING or FROM <url> for CMakeCM")
+        endif()
         set(ARG_FROM "https://vector-of-bool.github.io/CMakeCM")
+    else()
+        if(ARG_ROLLING)
+            message(FATAL_ERROR "Cannot specify both ROLLING and FROM for CMakeCM")
+        endif()
     endif()
     string(MD5 hash "${ARG_FROM}")
     string(SUBSTRING "${hash}" 0 6 hash)
