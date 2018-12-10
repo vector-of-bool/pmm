@@ -24,7 +24,10 @@ if ($PSVersionTable.OS -and $PSVersionTable.OS.StartsWith("Darwin")) {
         throw "Brew installation failed!"
     }
     $cc = $null
-    foreach ($item in (Get-ChildItem '/usr/local/Cellar/gcc@6' -Recurse -Include "gcc")) {
+    $candidates = (Get-ChildItem '/usr/local/Cellar/gcc@6' -Recurse -Include "gcc")
+    Write-Host "Candidate GCCs:"
+    $candidates | Write-Host
+    foreach ($item in $candidates) {
         $cmd = Get-Command $item.FullName -ErrorAction Ignore
         if ($cmd) {
             $cc = $item.FullName
