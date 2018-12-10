@@ -1,0 +1,53 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+jobs:
+  - job: MSVC
+    pool:
+      vmImage: vs2017-win2016
+    steps:
+      - script: choco install ninja
+        displayName: Install Ninja
+      - script: >
+          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
+          powershell ./ci.ps1 -ForceMSVC
+        displayName: Run tests
+
+  - job: MinGW
+    pool:
+      vmImage: vs2017-win2016
+    steps:
+      - script: choco install ninja
+        displayName: Install Ninja
+      - script: >
+          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
+          powershell ./ci.ps1
+        displayName: Run tests
+
+  - job: LinuxDocker
+    pool:
+      vmImage: ubuntu-16.04
+
+    steps:
+      - script: |
+          curl -Ls https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o ninja-linux.zip
+          unzip ninja-linux.zip
+          sudo cp -v ninja /usr/local/bin/
+          sudo apt-get install -y python3-venv
+        displayName: Prepare System
+      - script: pwsh ./ci.ps1 -RunDockerTests -NoCITestDir
+        displayName: Run tests
+
+  - job: macOS
+    pool:
+      vmImage: macos-10.13
+    steps:
+      - script: |
+          curl -Ls https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip -o ninja-mac.zip
+          unzip ninja-mac.zip
+          sudo cp -v ninja /usr/local/bin/
+        displayName: Prepare System
+      - script: pwsh ./ci.ps1
+        displayName: Run tests
