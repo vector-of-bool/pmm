@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(TestProject)
 
 include(${PMM_INCLUDE})
-pmm(CMakeCM)
+pmm(CMakeCM ROLLING)
 
 include(CMakeRC)
 

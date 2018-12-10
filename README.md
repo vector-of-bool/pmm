@@ -108,6 +108,12 @@ pmm(
         # Ensure the given packages are installed using vcpkg
         [REQUIRES [req [...]]]
     ]
+    # Use CMakeCM
+    [CMakeCM
+        # Either use the latest release, or specify a specific base URL to
+        # download from
+        {ROLLING | FROM <base-url>}
+    ]
 )
 ```
 
@@ -170,6 +176,23 @@ file: PMM will take care of this aspect for you.
 
 After calling `pmm(VCPKG)`, all you need to do is `find_package()` the
 packages that you want to use.
+
+## `CMakeCM` PMM mode
+
+If `CMakeCM` is provided, PMM will download and make available the [CMake
+Community Modules](https://github.com/vector-of-bool/CMakeCM) for you project.
+
+Once the `pmm()` function is run, you may `include` or `find_package` any of the
+modules provided by `CMakeCM`.
+
+You must also specify either `ROLLING` or `FROM <base-url>` to use CMakeCM with
+PMM:
+
+- If you specify `ROLLING`, PMM will download the latest version of the CMakeCM
+  module index every time you configure (with a few minutes of cooldown).
+- If you specify `FROM`, the module index will only be obtained from the given
+  base URL. **Note:** This URL *is not* the URL of a `CMakeCM.cmake` file: It
+  is a url that *prefixes* the `CMakeCM.cmake` module URL.
 
 # Helper Commands
 
