@@ -56,18 +56,14 @@ function(_pmm_ensure_vcpkg dir rev)
     endif()
     # Run the bootstrap script to prepare the tool
     _pmm_log("Bootstrapping the vcpkg tool (This may take a minute)...")
-    execute_process(
-        COMMAND
+    _pmm_exec(
             ${CMAKE_COMMAND} -E env
                 CC=${CMAKE_C_COMPILER}
                 CXX=${CMAKE_CXX_COMPILER}
             "${vcpkg_root}/bootstrap-vcpkg.${bootstrap_ext}"
-        OUTPUT_VARIABLE out
-        ERROR_VARIABLE out
-        RESULT_VARIABLE retc
         )
-    if(retc)
-        message(FATAL_ERROR "Failed to Bootstrap the vcpkg tool [${retc}]:\n${out}")
+    if(_PMM_RC)
+        message(FATAL_ERROR "Failed to Bootstrap the vcpkg tool [${_PMM_RC}]:\n${_PMM_OUTPUT}")
     endif()
     # Move the temporary directory to the final directory path
     file(REMOVE_RECURSE "${dir}")
@@ -174,7 +170,6 @@ function(_pmm_vcpkg)
                 --triplet "${ARG_TRIPLET}"
                 ${ARG_REQUIRES}
             )
-        _pmm_log(VERBOSE "Run vcpkg command: ${cmd}")
         _pmm_exec(${cmd})
         if(_PMM_RC)
             message(FATAL_ERROR "Failed to install requirements with vcpkg [${_PMM_RC}]:\n${_PMM_OUTPUT}")

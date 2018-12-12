@@ -361,14 +361,12 @@ function(_pmm_conan_install_1)
         _pmm_log(VERBOSE "Conan installation is up-to-date. Not running Conan.")
     else()
         _pmm_log("Installing Conan requirements from ${conanfile}")
-        _pmm_log(VERBOSE "Running conan install command: ${conan_install_cmd}")
-        execute_process(
-            COMMAND ${conan_install_cmd}
+        _pmm_exec(${conan_install_cmd}
             WORKING_DIRECTORY "${bin}"
-            RESULT_VARIABLE retc
+            NO_EAT_OUTPUT
             )
-        if(retc)
-            message(SEND_ERROR "Conan install failed [${retc}]:\n${out}")
+        if(_PMM_RC)
+            message(SEND_ERROR "Conan install failed [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         else()
             file(WRITE "${prev_cmd_file}" "${conan_install_cmd}")
         endif()

@@ -61,10 +61,29 @@ macro(_pmm_lift)
 endmacro()
 
 function(_pmm_exec)
+    if(PMM_DEBUG)
+        set(acc)
+        foreach(arg IN LISTS ARGN)
+            if(arg MATCHES " |\\\"|\\\\")
+                string(REPLACE "\"" "\\\"" arg "${arg}")
+                string(REPLACE "\\" "\\\\" arg "${arg}")
+                set(arg "\"${arg}\"")
+            endif()
+            string(APPEND acc "${arg} ")
+        endforeach()
+        _pmm_log(DEBUG "Executing command: ${acc}")
+    endif()
+    set(output_args)
+    if(NOT NO_EAT_OUTPUT IN_LIST ARGN)
+        set(output_args
+            OUTPUT_VARIABLE out
+            ERROR_VARIABLE out
+            )
+    endif()
+    list(REMOVE_ITEM ARGN NO_EAT_OUTPUT)
     execute_process(
         COMMAND ${ARGN}
-        OUTPUT_VARIABLE out
-        ERROR_VARIABLE out
+        ${output_args}
         RESULT_VARIABLE rc
         )
     set(_PMM_RC "${rc}" PARENT_SCOPE)
