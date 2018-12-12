@@ -1,5 +1,10 @@
 function(_pmm_find_python3 ovar)
-    file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/3.*/")
+    set(pyenv_root_env "$ENV{PYENV_ROOT}")
+    if(pyenv_root_env)
+        file(GLOB pyenv_dirs "${pyenv_root_env}/versions/3.*/")
+    else()
+        file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/3.*/")
+    endif()
     file(GLOB c_python_dirs "C:/Python3*")
     find_program(
         _ret
@@ -33,7 +38,12 @@ function(_pmm_find_python3 ovar)
 endfunction()
 
 function(_pmm_find_python2 ovar)
-    file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/2.*/bin")
+    set(pyenv_root_env "$ENV{PYENV_ROOT}")
+    if(pyenv_root_env)
+        file(GLOB pyenv_dirs "${pyenv_root_env}/versions/2.*/")
+    else()
+        file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/2.*/")
+    endif()
     file(GLOB c_python_dirs "C:/Python2*")
     find_program(
         _ret
