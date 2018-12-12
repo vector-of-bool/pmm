@@ -5,6 +5,7 @@ execute_process(
         -D PMM_URL=${PMM_URL}
         -D PMM_INCLUDE=${PMM_INCLUDE}
         -D PMM_DEBUG=TRUE
+        -D PMM_ALWAYS_DOWNLOAD=TRUE
         -G ${GENERATOR}
         "-H${SOURCE_DIR}"
         "-B${BUILD_DIR}"

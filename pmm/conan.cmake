@@ -1,6 +1,7 @@
 set(PMM_CONAN_MIN_VERSION 1.8.0     CACHE INTERNAL "Minimum Conan version we support")
 set(PMM_CONAN_MAX_VERSION 1.9.9999  CACHE INTERNAL "Maximum Conan version we support")
 
+
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
 function(_pmm_get_conan_venv py_name py_exe)
@@ -79,6 +80,7 @@ function(_pmm_get_conan_venv py_name py_exe)
     endif()
 endfunction()
 
+
 # Ensure the presence of a `PMM_CONAN_EXECUTABLE` program
 function(_pmm_ensure_conan)
     if(PMM_CONAN_EXECUTABLE)
@@ -153,6 +155,7 @@ function(_pmm_ensure_conan)
     endif()
 endfunction()
 
+
 function(_pmm_vs_version out)
     set(ver ${MSVC_VERSION})
     if(ver GREATER_EQUAL 1920)
@@ -181,7 +184,7 @@ function(_pmm_vs_version out)
 endfunction()
 
 
-function(_pmm_conan_calc_settings_args out)
+function(_pmm_conan_get_settings out)
     _pmm_log(DEBUG "Calculating Conan settings values")
     set(ret)
     get_cmake_property(langs ENABLED_LANGUAGES)
@@ -210,11 +213,32 @@ function(_pmm_conan_calc_settings_args out)
         endif()
     endif()
 
+    # Detect the OS information
+    set(sysname "${CMAKE_SYSTEM_NAME}")
+    if(NOT sysname AND CMAKE_HOST_SYSTEM_NAME)
+        set(sysname "${CMAKE_HOST_SYSTEM_NAME}")
+    endif()
+    if(sysname MATCHES "^Windows(Store|Phone)$")
+        set(os WindowsStore)
+    elseif(sysname STREQUAL "Linux")
+        set(os Linux)
+    elseif(sysname STREQUAL "Darwin")
+        set(os Macos)
+    elseif(sysname STREQUAL "Windows")
+        set(os Windows)
+    elseif(sysname STREQUAL "FreeBSD")
+        set(os FreeBSD)
+    endif()
+    if(NOT ARG_SETTINGS MATCHES ";?os=")
+        _pmm_log(DEBUG "Using os=${os}")
+        list(APPEND ret os=${os})
+    endif()
+
     ## Check for GNU (GCC)
     if(comp_id STREQUAL GNU)
         # Use 'gcc'
         _pmm_log(DEBUG "Using compiler=gcc")
-        list(APPEND ret --setting compiler=gcc)
+        list(APPEND ret compiler=gcc)
         # Parse out the version
         if(NOT comp_version MATCHES "${majmin_ver_re}")
             message(FATAL_ERROR "Unable to parse compiler version string: ${comp_version}")
@@ -224,15 +248,15 @@ function(_pmm_conan_calc_settings_args out)
             string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" use_version "${use_version}")
         endif()
         _pmm_log(DEBUG "Using compiler.version=${use_version}")
-        list(APPEND ret --setting compiler.version=${use_version})
+        list(APPEND ret compiler.version=${use_version})
         # Detect what libstdc++ ABI are likely using.
         if(lang STREQUAL "CXX")
             if(comp_version VERSION_GREATER_EQUAL 5.1)
                 _pmm_log(DEBUG "Using compiler.libcxx=libstdc++11")
-                list(APPEND ret --setting compiler.libcxx=libstdc++11)
+                list(APPEND ret compiler.libcxx=libstdc++11)
             else()
                 _pmm_log(DEBUG "Using compiler.libcxx=libstdc++")
-                list(APPEND ret --setting compiler.libcxx=libstdc++)
+                list(APPEND ret compiler.libcxx=libstdc++)
             endif()
         else()
             _pmm_log(DEBUG "Not setting a compiler.libcxx value (Not using C++ compiler for settings detection)")
@@ -241,44 +265,44 @@ function(_pmm_conan_calc_settings_args out)
     elseif(comp_id STREQUAL AppleClang)
         # Use apple-clang
         _pmm_log(DEBUG "Using compiler=apple-clang")
-        list(APPEND ret --setting compiler=apple-clang)
+        list(APPEND ret compiler=apple-clang)
         if(lang STREQUAL "CXX")
             _pmm_log(DEBUG "Using compiler.libcxx=libc++")
-            list(APPEND ret --setting compiler.libcxx=libc++)
+            list(APPEND ret compiler.libcxx=libc++)
         endif()
         # Get that version. Same as with Clang
         if(NOT comp_version MATCHES "${majmin_ver_re}")
             message(FATAL_ERROR "Unable to parse compiler version string: ${comp_version}")
         endif()
         _pmm_log(DEBUG "Using compiler.version=${CMAKE_MATCH_1}")
-        list(APPEND ret --setting "compiler.version=${CMAKE_MATCH_1}")
+        list(APPEND ret "compiler.version=${CMAKE_MATCH_1}")
     # Non-Appley Clang.
     elseif(comp_id STREQUAL Clang)
         # Regular clang
         _pmm_log(DEBUG "Using compiler=clang")
-        list(APPEND ret --setting compiler=clang)
+        list(APPEND ret compiler=clang)
         # Get that version. Same as with AppleClang
         if(NOT comp_version MATCHES "${majmin_ver_re}")
             message(FATAL_ERROR "Unable to parse compiler version string: ${comp_version}")
         endif()
         _pmm_log(DEBUG "Using compiler.version=${CMAKE_MATCH_1}")
-        list(APPEND ret --setting "compiler.version=${CMAKE_MATCH_1}")
+        list(APPEND ret "compiler.version=${CMAKE_MATCH_1}")
         # TODO: Support libc++ with regular Clang. Plz.
         if(lang STREQUAL "CXX")
             _pmm_log(DEBUG "Using compiler.libcxx=libstdc++")
-            list(APPEND ret --setting compiler.libcxx=libstdc++)
+            list(APPEND ret compiler.libcxx=libstdc++)
         endif()
     elseif(comp_id STREQUAL "MSVC")
         _pmm_vs_version(vs_version)
         _pmm_log(DEBUG "Using compiler=Visual Studio")
         _pmm_log(DEBUG "Using compiler.version=${vs_version}")
-        list(APPEND ret --setting "compiler=Visual Studio" --setting compiler.version=${vs_version})
+        list(APPEND ret "compiler=Visual Studio" compiler.version=${vs_version})
         if (CMAKE_GENERATOR_TOOLSET)
             _pmm_log(DEBUG "Using compiler.toolset=${CMAKE_GENERATOR_TOOLSET}")
-            list(APPEND ret --setting compiler.toolset=${CMAKE_GENERATOR_TOOLSET})
+            list(APPEND ret compiler.toolset=${CMAKE_GENERATOR_TOOLSET})
         elseif(CMAKE_VS_PLATFORM_TOOLSET AND (CMAKE_GENERATOR STREQUAL "Ninja"))
             _pmm_log(DEBUG "Using compiler.toolset=${CMAKE_VS_PLATFORM_TOOLSET}")
-            list(APPEND ret --setting compiler.toolset=${CMAKE_VS_PLATFORM_TOOLSET})
+            list(APPEND ret compiler.toolset=${CMAKE_VS_PLATFORM_TOOLSET})
         endif()
     else()
         message(FATAL_ERROR "Unable to detect compiler setting for Conan from CMake. (Unhandled compiler ID ${comp_id}).")
@@ -291,28 +315,33 @@ function(_pmm_conan_calc_settings_args out)
             set(bt Debug)
         endif()
         _pmm_log(DEBUG "Using build_type=${bt}")
-        list(APPEND ret --setting build_type=${bt})
+        list(APPEND ret build_type=${bt})
     endif()
 
     # Todo: Cross compiling
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        _pmm_log(DEBUG "Using arch=${x86_64}")
-        list(APPEND ret --setting arch=x86_64)
-    else()
-        _pmm_log(DEBUG "Using arch=${x86}")
-        list(APPEND ret --setting arch=x86)
+    if(NOT ARG_SETTINGS MATCHES ";?arch=")
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            _pmm_log(DEBUG "Using arch=${x86_64}")
+            list(APPEND ret arch=x86_64)
+        else()
+            _pmm_log(DEBUG "Using arch=${x86}")
+            list(APPEND ret arch=x86)
+        endif()
+    endif()
+
+    if(NOT ARG_SETTINGS MATCHES ";?cppstd=")
+        if(CMAKE_CXX_STANDARD)
+            list(APPEND ret cppstd=${CMAKE_CXX_STANDARD})
+        endif()
     endif()
 
     if(CMAKE_CROSSCOMPILING)
         _pmm_log(WARNING "Cross compiling isn't supported yet. Be careful.")
     endif()
 
-    foreach(setting IN LISTS ARG_SETTINGS)
-        list(APPEND ret --setting ${setting})
-    endforeach()
-
     set("${out}" "${ret}" PARENT_SCOPE)
 endfunction()
+
 
 function(_pmm_conan_install_1)
     set(src "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -324,22 +353,41 @@ function(_pmm_conan_install_1)
     get_filename_component(libman_inc "${bin}/conan-libman.cmake" ABSOLUTE)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
 
-    _pmm_conan_calc_settings_args(more_args)
-    foreach(arg IN LISTS ARG_OPTIONS)
-        list(APPEND more_args --options ${arg})
+    get_filename_component(profile_file "${bin}/pmm-conan.profile" ABSOLUTE)
+    set(profile_lines "[settings]")
+
+    # Get the settings for the profile
+    _pmm_conan_get_settings(settings_lines)
+    list(APPEND profile_lines "${settings_lines}")
+    foreach(setting IN LISTS ARG_SETTINGS)
+        list(APPEND profile_lines "${setting}")
     endforeach()
 
+    # Add the options to the profile
+    list(APPEND profile_lines "" "[options]")
+    foreach(arg IN LISTS ARG_OPTIONS)
+        list(APPEND profile_lines "${arg}")
+    endforeach()
+
+    list(APPEND profile_lines "" "[env]")
     if(CMAKE_C_COMPILER)
-        list(APPEND more_args --env CC=${CMAKE_C_COMPILER})
+        list(APPEND profile_lines "CC=${CMAKE_C_COMPILER}")
     endif()
     if(CMAKE_CXX_COMPILER)
-        list(APPEND more_args --env CXX=${CMAKE_CXX_COMPILER})
+        list(APPEND profile_lines "CXX=${CMAKE_CXX_COMPILER}")
     endif()
+    foreach(env IN LISTS ARG_ENV)
+        list(APPEND profile_lines "${env}")
+    endforeach()
+
+    string(REPLACE ";" "\n" profile_content "${profile_lines}")
+    _pmm_write_if_different("${profile_file}" "${profile_content}")
 
     _pmm_set_if_undef(ARG_BUILD missing)
-    list(APPEND more_args --generator cmake --build ${ARG_BUILD})
+    set(conan_args --profile "${profile_file}")
+    list(APPEND conan_args --generator cmake --build ${ARG_BUILD})
     set(conan_install_cmd
-        "${PMM_CONAN_EXECUTABLE}" install "${src}" ${more_args}
+        "${PMM_CONAN_EXECUTABLE}" install "${src}" ${conan_args}
         )
     set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd.txt")
     set(do_install FALSE)
@@ -375,11 +423,13 @@ function(_pmm_conan_install_1)
     set(__libman_inc "${libman_inc}" PARENT_SCOPE)
 endfunction()
 
+
 macro(_pmm_conan_do_setup)
     _pmm_log(VERBOSE "Run conan_define_targets() and conan_set_find_paths()")
     conan_define_targets()
     conan_set_find_paths()
 endmacro()
+
 
 macro(_pmm_conan_install)
     if(CONAN_EXPORTED AND CONAN_IN_LOCAL_CACHE)
@@ -410,6 +460,7 @@ macro(_pmm_conan_install)
     unset(__conan_inc)
     unset(__was_included)
 endmacro()
+
 
 function(_conan_ensure_remotes remotes)
     _pmm_exec("${PMM_CONAN_EXECUTABLE}" remote list)
@@ -465,7 +516,7 @@ endfunction()
 function(_pmm_conan)
     _pmm_parse_args(
         - BUILD
-        + SETTINGS OPTIONS REMOTES
+        + SETTINGS OPTIONS ENV REMOTES
         )
 
     get_cmake_property(__was_setup _PMM_CONAN_WAS_SETUP)
@@ -519,6 +570,7 @@ function(_pmm_conan)
         endif()
     endforeach()
 
+    # Enable the remote repositories that the user may want to use
     _conan_ensure_remotes("${ARG_REMOTES}")
 
     # Check that there is a Conanfile, or we might be otherwise building in the
