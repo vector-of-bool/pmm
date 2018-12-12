@@ -56,11 +56,16 @@ function(_pmm_ensure_vcpkg dir rev)
     endif()
     # Run the bootstrap script to prepare the tool
     _pmm_log("Bootstrapping the vcpkg tool (This may take a minute)...")
+    set(no_eat)
+    if(PMM_DEBUG)
+        set(no_eat NO_EAT_OUTPUT)
+    endif()
     _pmm_exec(
             ${CMAKE_COMMAND} -E env
                 CC=${CMAKE_C_COMPILER}
                 CXX=${CMAKE_CXX_COMPILER}
             "${vcpkg_root}/bootstrap-vcpkg.${bootstrap_ext}"
+            ${no_eat}
         )
     if(_PMM_RC)
         message(FATAL_ERROR "Failed to Bootstrap the vcpkg tool [${_PMM_RC}]:\n${_PMM_OUTPUT}")
