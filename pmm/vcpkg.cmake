@@ -158,7 +158,7 @@ function(_pmm_vcpkg)
         # time I typed this comment. If you are modifying PMM, feel free to
         # change this revision number to whatever is the latest in the vcpkg
         # repository. (https://github.com/Microsoft/vcpkg)
-        message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION 2a283bd5224b5335a90539faa1b0ac7260411465`")
+        message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION cf7e2f3906f78dcb89f320a642428b54c00e4e0b`")
     endif()
     if(NOT DEFINED ARG_TRIPLET)
         _pmm_vcpkg_default_triplet(ARG_TRIPLET)

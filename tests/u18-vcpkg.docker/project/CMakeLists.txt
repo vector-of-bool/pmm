@@ -5,7 +5,7 @@ include(${PMM_INCLUDE})
 pmm(
     DEBUG
     VCPKG
-        REVISION 43deeaf0c8b6086310ee753be2e93c941f7ffd75
+        REVISION cf7e2f3906f78dcb89f320a642428b54c00e4e0b
         REQUIRES fmt
     )
 
