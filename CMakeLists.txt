@@ -6,6 +6,7 @@ set(PMM_URL "file://${PROJECT_SOURCE_DIR}/pmm")
 set(PMM_DEBUG TRUE)
 include(pmm.cmake)
 pmm(CONAN
+    BINCRAFTERS COMMUNITY
     REMOTES vob https://api.bintray.com/conan/vector-of-bool/vector-of-bool
     )
 include(latest-info.cmake)

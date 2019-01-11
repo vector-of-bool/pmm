@@ -100,6 +100,10 @@ pmm(
         [BUILD <policy>]
         # Ensure remotes are present before installing
         [REMOTES [<name>[::no_verify] <url> [...]]]
+        # Enable the Bincrafters repository
+        [BINCRAFTERS]
+        # Enable the conan-community repository
+        [COMMUNITY]
     ]
     # Use vcpkg
     [VCPKG

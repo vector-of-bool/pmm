@@ -87,8 +87,13 @@ endmacro()
 # Ensure the presence of a `PMM_CONAN_EXECUTABLE` program
 function(_pmm_ensure_conan)
     if(PMM_CONAN_EXECUTABLE)
-        _pmm_log(DEBUG "Conan executable already set: ${PMM_CONAN_EXECUTABLE}")
-        return()
+        if(NOT EXISTS "${PMM_CONAN_EXECUTABLE}")
+            _pmm_log(WARNING "Conan executable '${PMM_CONAN_EXECUTABLE}' from a prior configuration is gone. Looking for a new one.")
+            unset(PMM_CONAN_EXECUTABLE CACHE)
+        else()
+            _pmm_log(DEBUG "Conan executable already set: ${PMM_CONAN_EXECUTABLE}")
+            return()
+        endif()
     endif()
 
     _pmm_conan_vars()
@@ -558,6 +563,7 @@ endfunction()
 # Implement the `CONAN` subcommand
 function(_pmm_conan)
     _pmm_parse_args(
+        . BINCRAFTERS COMMUNITY
         - BUILD
         + SETTINGS OPTIONS ENV REMOTES
         )
@@ -565,6 +571,13 @@ function(_pmm_conan)
     get_cmake_property(__was_setup _PMM_CONAN_WAS_SETUP)
     if(__was_setup)
         _pmm_log(WARNING "pmm(CONAN) ran more than once during configure. This is not supported.")
+    endif()
+
+    if(ARG_BINCRAFTERS)
+        list(APPEND ARG_REMOTES bincrafters https://api.bintray.com/conan/bincrafters/public-conan)
+    endif()
+    if(ARG_COMMUNITY)
+        list(APPEND ARG_REMOTES conan-community https://api.bintray.com/conan/conan-community/conan)
     endif()
 
     # Ensure that we have Conan
