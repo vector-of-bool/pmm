@@ -65,6 +65,14 @@ Available options:
 /Conan
     Perform a Conan action
 
+    /Install [/Upgrade]
+        Ensure that a Conan executable is installed. If `/Upgrade` is provided,
+        will attempt to upgrade an existing installation
+
+    /Uninstall
+        Remove the Conan installation that PMM may have created
+        (necessary for Conan upgrades)
+
     /Version
         Print the Conan version
 

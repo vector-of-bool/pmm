@@ -1,5 +1,5 @@
 set(PMM_CONAN_MIN_VERSION 1.8.0     CACHE INTERNAL "Minimum Conan version we support")
-set(PMM_CONAN_MAX_VERSION 1.9.9999  CACHE INTERNAL "Maximum Conan version we support")
+set(PMM_CONAN_MAX_VERSION 1.99999.0 CACHE INTERNAL "Maximum Conan version we support")
 
 
 # Get Conan in a new virtualenv using the Python interpreter specified by the
@@ -80,6 +80,9 @@ function(_pmm_get_conan_venv py_name py_exe)
     endif()
 endfunction()
 
+macro(_pmm_conan_vars)
+    get_filename_component(_PMM_CONAN_VENV_DIR "${_PMM_USER_DATA_DIR}/_conan_venv" ABSOLUTE)
+endmacro()
 
 # Ensure the presence of a `PMM_CONAN_EXECUTABLE` program
 function(_pmm_ensure_conan)
@@ -88,7 +91,7 @@ function(_pmm_ensure_conan)
         return()
     endif()
 
-    get_filename_component(_PMM_CONAN_VENV_DIR "${_PMM_USER_DATA_DIR}/_conan_venv" ABSOLUTE)
+    _pmm_conan_vars()
     _pmm_log(DEBUG "Lock access to virtualenv directory ${_PMM_CONAN_VENV_DIR}")
 
     file(
@@ -129,6 +132,11 @@ function(_pmm_ensure_conan)
         if(NOT _prev)
             _pmm_log("Found Conan: ${PMM_CONAN_EXECUTABLE}")
         endif()
+        return()
+    endif()
+
+    if(_PMM_ENSURE_CONAN_NO_INSTALL)
+        # Parent scope asks that we do not try to install a Conan executable
         return()
     endif()
 
@@ -181,6 +189,41 @@ function(_pmm_vs_version out)
     endif()
     _pmm_log(DEBUG "Calculated MSVC version to be ${ret}")
     set(${out} ${ret} PARENT_SCOPE)
+endfunction()
+
+
+function(_pmm_conan_uninstall)
+    set(_PMM_ENSURE_CONAN_NO_INSTALL TRUE)
+    _pmm_ensure_conan()
+    if(NOT PMM_CONAN_EXECUTABLE)
+        _pmm_log("No Conan executable found to uninstall")
+        return()
+    endif()
+
+    _pmm_conan_vars()
+    if(NOT EXISTS "${_PMM_CONAN_VENV_DIR}")
+        message(FATAL_ERROR "Conan executable '${PMM_CONAN_EXECUTABLE}' was not installed by PMM. We will not uninstall it.")
+    endif()
+
+    _pmm_log("Removing Conan virtualenv ${_PMM_CONAN_VENV_DIR}")
+    file(REMOVE_RECURSE "${_PMM_CONAN_VENV_DIR}")
+endfunction()
+
+
+function(_pmm_conan_upgrade)
+    _pmm_conan_vars()
+    find_program(venv_py
+        NAMES python
+        NO_DEFAULT_PATH
+        PATHS "${_PMM_CONAN_VENV_DIR}"
+        PATH_SUFFIXES bin Scripts
+        )
+    _pmm_log("Upgrading Conan...")
+    _pmm_exec("${venv_py}" -m pip install --quiet --upgrade "conan<${PMM_CONAN_MAX_VERSION}" NO_EAT_OUTPUT)
+    if(_PMM_RC)
+        message(FATAL_ERROR "Conan upgrade failed [${_PMM_RC}]")
+    endif()
+    _pmm_log("Conan upgrade successful")
 endfunction()
 
 
@@ -590,9 +633,35 @@ endfunction()
 
 function(_pmm_script_main_conan)
     _pmm_parse_args(
-        . /Version /Create /Upload /Export
+        .
+            /Version
+            /Create
+            /Upload
+            /Export
+            /Install
+            /Upgrade
+            /Uninstall
         - /Ref /Remote
         )
+
+    if(ARG_/Uninstall)
+        _pmm_conan_uninstall()
+        return()
+    endif()
+
+    if(ARG_/Install)
+        set(_PMM_ENSURE_CONAN_NO_INSTALL TRUE)
+        _pmm_ensure_conan()
+        unset(_PMM_ENSURE_CONAN_NO_INSTALL)
+        if(NOT PMM_CONAN_EXECUTABLE)
+            _pmm_ensure_conan()
+        elseif(ARG_/Upgrade)
+            _pmm_conan_upgrade()
+        else()
+            _pmm_log("Not upgrading the existing installation. Use `/Upgrade` to upgrade")
+        endif()
+        return()
+    endif()
 
     if(ARG_/Version)
         _pmm_ensure_conan()
