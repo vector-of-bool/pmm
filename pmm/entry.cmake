@@ -56,7 +56,7 @@ endfunction()
 
 foreach(fname IN ITEMS util.cmake python.cmake conan.cmake vcpkg.cmake cmcm.cmake main.cmake)
     get_filename_component(_dest "${PMM_DIR}/${fname}" ABSOLUTE)
-    if(NOT EXISTS "${_dest}")
+    if(NOT EXISTS "${_dest}" OR PMM_ALWAYS_DOWNLOAD)
         _pmm_download("${PMM_URL}/${fname}" "${_dest}")
     endif()
     include("${_dest}")
