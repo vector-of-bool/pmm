@@ -15,7 +15,7 @@ else()
 endif()
 
 # The main function.
-function(_pmm)
+function(_pmm_project_fn)
     _pmm_parse_args(
         . DEBUG VERBOSE
         + CONAN VCPKG CMakeCM
@@ -44,7 +44,7 @@ endfunction()
 
 macro(pmm)
     unset(_PMM_INCLUDE)
-    _pmm(${ARGV})
+    _pmm_project_fn(${ARGV})
     foreach(inc IN LISTS _PMM_INCLUDE)
         include(${inc})
     endforeach()
