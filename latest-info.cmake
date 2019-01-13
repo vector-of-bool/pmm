@@ -7,7 +7,7 @@ function(_pmm_changes version)
     endif()
 endfunction()
 
-set(PMM_LATEST_VERSION 1.3.0)
+set(PMM_LATEST_VERSION 1.3.1)
 
 if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
     message(STATUS "[pmm] You are using PMM version ${PMM_VERSION}. The latest is ${PMM_LATEST_VERSION}.")
@@ -61,6 +61,9 @@ if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
         "Respect PYENV_ROOT when looking for Python"
         "PMM DEBUG mode now prints all external commands that it executes"
         "PMM DEBUG prints debugging information from vcpkg bootstrap"
+        )
+    _pmm_changes(1.3.1
+        "Fix changes to build settings and options not triggering a Conan installation"
         )
     message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
     message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")

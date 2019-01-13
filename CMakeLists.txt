@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(pmm VERSION 1.3.0)
+project(pmm VERSION 1.3.1)
 
 set(PMM_ALWAYS_DOWNLOAD TRUE)
 set(PMM_URL "file://${PROJECT_SOURCE_DIR}/pmm")
