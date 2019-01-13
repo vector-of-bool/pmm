@@ -436,6 +436,7 @@ function(_pmm_conan_install_1)
     set(conan_args --profile "${profile_file}")
     list(APPEND conan_args --generator cmake --build ${ARG_BUILD})
     set(conan_install_cmd
+        "${CMAKE_COMMAND}" -E env CONAN_LIBMAN_FOR=cmake
         "${PMM_CONAN_EXECUTABLE}" install "${src}" ${conan_args}
         )
     set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd.txt")
