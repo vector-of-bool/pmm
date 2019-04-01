@@ -398,7 +398,7 @@ function(_pmm_conan_install_1)
     # Do the regular install logic
     get_filename_component(conan_inc "${bin}/conanbuildinfo.cmake" ABSOLUTE)
     get_filename_component(conan_timestamp_file "${bin}/conaninfo.txt" ABSOLUTE)
-    get_filename_component(libman_inc "${bin}/conan-libman.cmake" ABSOLUTE)
+    get_filename_component(libman_inc "${bin}/libman.cmake" ABSOLUTE)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
 
     get_filename_component(profile_file "${bin}/pmm-conan.profile" ABSOLUTE)
