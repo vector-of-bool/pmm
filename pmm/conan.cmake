@@ -128,7 +128,12 @@ function(_pmm_ensure_conan)
     endif()
 
     # Try to find an existing Conan installation
-    file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*")
+    set(pyenv_root_env "$ENV{PYENV_ROOT}")
+    if(pyenv_root_env)
+        file(GLOB pyenv_versions "${pyenv_root_env}/versions/*/")
+    else()
+        file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*/")
+    endif()
     _pmm_log(VERBOSE "Found pyenv installations: ${pyenv_versions}")
     set(_prev "${PMM_CONAN_EXECUTABLE}")
     file(GLOB py_installs C:/Python*)
