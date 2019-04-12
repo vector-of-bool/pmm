@@ -111,7 +111,20 @@ function(_pmm_ensure_conan)
             LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
             GUARD FUNCTION
             TIMEOUT 60
+            RESULT_VARIABLE lock_res
             )
+        if(lock_res)
+            _pmm_log("Unable to obtain lock after 60 seconds. We'll try for one more minute...")
+            file(
+                LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
+                GUARD FUNCTION
+                TIMEOUT 60
+                RESULT_VARIABLE lock_res
+                )
+            if(lock_res)
+                message(FATAL_ERROR "Unable to obtain exclusive lock on directory ${_PMM_CONAN_VENV_DIR}. Abort.")
+            endif()
+        endif()
     endif()
 
     # Try to find an existing Conan installation
