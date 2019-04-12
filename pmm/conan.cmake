@@ -533,7 +533,13 @@ macro(_pmm_conan_install)
 endmacro()
 
 
-function(_conan_ensure_remotes remotes)
+
+function(_pmm_conan_ensure_remotes remotes)
+    file(
+        LOCK "${_PMM_CONAN_VENV_DIR}/.pmm-remotes-lk" DIRECTORY
+        GUARD FUNCTION
+        TIMEOUT 60
+        )
     _pmm_exec("${PMM_CONAN_EXECUTABLE}" remote list)
     string(STRIP "${_PMM_OUTPUT}" out)
     string(REPLACE "\n" ";" lines "${out}")
@@ -650,7 +656,7 @@ function(_pmm_conan)
     endforeach()
 
     # Enable the remote repositories that the user may want to use
-    _conan_ensure_remotes("${ARG_REMOTES}")
+    _pmm_conan_ensure_remotes("${ARG_REMOTES}")
 
     # Check that there is a Conanfile, or we might be otherwise building in the
     # local cache.
