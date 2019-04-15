@@ -732,6 +732,7 @@ endfunction()
 
 function(_pmm_script_main_conan)
     _pmm_parse_args(
+        -hardcheck
         .
             /Version
             /Create
