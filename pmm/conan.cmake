@@ -672,7 +672,7 @@ function(_pmm_conan)
 
     # Check that there is a Conanfile, or we might be otherwise building in the
     # local cache.
-    if(NOT DEFINED conanfile AND NOT (CONAN_EXPORTED AND CONAN_IN_LOCAL_CACHE))
+    if(NOT DEFINED conanfile AND NOT CONAN_EXPORTED)
         message(FATAL_ERROR "pf(CONAN) requires a Conanfile in your project source directory")
     endif()
     # Go!
