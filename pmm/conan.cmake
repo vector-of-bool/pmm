@@ -614,6 +614,8 @@ function(_pmm_conan)
         _pmm_log(WARNING "pmm(CONAN) ran more than once during configure. This is not supported.")
     endif()
 
+    _pmm_conan_vars()
+
     if(ARG_BINCRAFTERS)
         list(APPEND ARG_REMOTES bincrafters https://api.bintray.com/conan/bincrafters/public-conan)
     endif()
