@@ -725,6 +725,11 @@ function(_pmm_conan_gen_profile destpath be_lazy)
 endfunction()
 
 
+function(_pmm_print_conan_where cookie)
+    message("${cookie}${PMM_CONAN_EXECUTABLE}")
+endfunction()
+
+
 function(_pmm_script_main_conan)
     _pmm_parse_args(
         .
@@ -739,12 +744,14 @@ function(_pmm_script_main_conan)
             /Uninstall
             /GenProfile
             /Lazy  # For /GenProfile
-        + /Settings /Options
+        - /Ref /Remote /Profile /Where
+        + /Settings /Options /BuildPolicy /EnsureRemotes
         )
+
+    _pmm_conan_vars()
 
     if(ARG_/Uninstall)
         _pmm_conan_uninstall()
-        return()
     endif()
 
     if(ARG_/Install)
@@ -758,13 +765,30 @@ function(_pmm_script_main_conan)
         else()
             _pmm_log("Not upgrading the existing installation. Use `/Upgrade` to upgrade")
         endif()
-        return()
+    endif()
+
+    # Disable automatic installation of Conan from here on
+    set(_PMM_ENSURE_CONAN_NO_INSTALL TRUE)
+
+    if(DEFINED ARG_/Where)
+        _pmm_ensure_conan()
+        if(NOT PMM_CONAN_EXECUTABLE)
+            message(FATAL_ERROR "/Where may only be used after Conan has been installed. Try passing /Install")
+        endif()
+        _pmm_print_conan_where("${ARG_/Where}")
     endif()
 
     if(ARG_/Version)
         _pmm_ensure_conan()
         execute_process(COMMAND "${PMM_CONAN_EXECUTABLE}" --version)
-        return()
+    endif()
+
+    if(ARG_/EnsureRemotes)
+        _pmm_ensure_conan()
+        if(NOT PMM_CONAN_EXECUTABLE)
+            message(FATAL_ERROR "/EnsureRemotes may only be used after Conan has been installed. Try passing /Install")
+        endif()
+        _pmm_conan_ensure_remotes("${ARG_/EnsureRemotes}")
     endif()
 
     if(ARG_/Create AND ARG_/Export)
@@ -801,6 +825,9 @@ function(_pmm_script_main_conan)
             message(FATAL_ERROR "Pass a /Ref for /Create")
         endif()
         _pmm_ensure_conan()
+        foreach(policy IN LISTS ARG_/BuildPolicy)
+            list(APPEND create_args "--build=${policy}")
+        endforeach()
         execute_process(
             COMMAND "${PMM_CONAN_EXECUTABLE}" create ${create_args} "${CMAKE_SOURCE_DIR}" "${ARG_/Ref}"
             RESULT_VARIABLE retc
@@ -809,6 +836,7 @@ function(_pmm_script_main_conan)
             message(FATAL_ERROR "Create failed [${retc}]")
         endif()
     endif()
+
     if(ARG_/Export)
         if(NOT ARG_/Ref)
             message(FATAL_ERROR "Pass /Ref when for /Export")
