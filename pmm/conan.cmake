@@ -731,6 +731,8 @@ function(_pmm_script_main_conan)
             /Version
             /Create
             /Upload
+            /All
+            /NoOverwrite
             /Export
             /Install
             /Upgrade
@@ -840,6 +842,12 @@ function(_pmm_script_main_conan)
         set(cmd "${PMM_CONAN_EXECUTABLE}" upload --confirm --check)
         if(ARG_/Remote)
             list(APPEND cmd --remote "${ARG_/Remote}")
+        endif()
+        if(ARG_/All)
+            list(APPEND cmd --all)
+        endif()
+        if(ARG_/NoOverwrite)
+            list(APPEND cmd --no-overwrite all)
         endif()
         list(APPEND cmd "${full_ref}")
         execute_process(
