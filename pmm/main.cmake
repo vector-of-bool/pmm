@@ -63,30 +63,73 @@ Available options:
     Display this help message
 
 /Conan
-    Perform a Conan action
+    Perform a Conan action. None of the actions are mutually exclusive, and
+    they will be evaluated in the order they are listed below.
 
-    /Install [/Upgrade]
-        Ensure that a Conan executable is installed. If `/Upgrade` is provided,
-        will attempt to upgrade an existing installation
+    For example, you may specify both `/Create` and `/Upload` to perform
+    a build and an upload in a single go.
+
+    Most of the actions require a Conan installation be present, and will not
+    install it on-the-fly themselves. Add `/Install` to the command line to
+    make sure that Conan is present.
 
     /Uninstall
         Remove the Conan installation that PMM may have created
         (necessary for Conan upgrades)
 
+    /Install [/Upgrade]
+        Ensure that a Conan executable is installed. If `/Upgrade` is provided,
+        will attempt to upgrade an existing installation
+
+    /Where <cookie>
+        Print the path to the Conan executable with the given <cookie>
+        prepended to the path on the same line.
+
     /Version
         Print the Conan version
 
-    /Export /Ref <ref> [/Upload [/Remote <remote>]]
+    /EnsureRemotes [<name>[::no_verify] <url> [...]]
+        Ensure the given Conan remotes are defined.
+
+    /Profile <path>
+        Specify the path to a Conan profile. Used with /GenProfile and /Create.
+
+        It must either already exist, or you may pass `/GenProfile` to create it
+        on-the-fly.
+
+
+
+    /GenProfile [/Lazy]
+        Use PMM's Conan-profile generation to write a profile file to the
+        path specified by the /Profile argument using the current environment
+        to configure a simple CMake project.
+
+        If `/Lazy` is specified, performs a no-op if the file already exists.
+
+        This can be combined with `/Create` to generate a profile on-the-fly
+        for `conan create` to use.
+
+    /Ref <ref>
+        Specify a `<ref>`. Required for `/Export`, `/Create`, and `/Upload`.
+
+    /Export
         Run `conan export . <ref>`.
 
         With `/Upload`, will also upload the package after export.
 
-    /Create /Ref <ref> [/Upload [/Remote <remote>]]
+    /Create [/Settings ...]
+            [/Options ...]
+            [/BuildPolicy [<policy> ...]]]
         Run `conan create . <ref>`.
 
-        With `/Upload`, will also upload the package after creation.
+        `/Settings` will add `--settings` arguments to the Conan command line,
+        and `/Options` will add `--options` arguments to the Conan command line.
 
-    /Upload /Ref <ref> [/Remote <remote>]
+        `/BuildPolicy` will specify `--build` arguments to the create command.
+
+        Use `/Profile` to specify a profile to be used by `conan create`.
+
+    /Upload [/Remote <remote>] [/All] [/NoOverwrite]
         Upload the current package (should have already been exported).
 
         `<ref>` may be a partial `user/channel` reference. In this case the full
