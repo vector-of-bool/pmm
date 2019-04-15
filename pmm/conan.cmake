@@ -685,6 +685,46 @@ function(_pmm_conan)
 endfunction()
 
 
+function(_pmm_conan_gen_profile destpath be_lazy)
+    if(EXISTS "${destpath}" AND be_lazy)
+        return()
+    endif()
+    set(tmpdir "${PMM_DIR}/_gen-profile-project")
+    set(tmpdir_build "${tmpdir}/_build")
+    file(REMOVE_RECURSE "${tmpdir}")
+    file(REMOVE_RECURSE "${tmpdir_build}")
+    # Detect if we have Ninja
+    find_program(_ninja_exe NAMES ninja-build ninja)
+    # Generate a small project
+    file(MAKE_DIRECTORY "${tmpdir}")
+    string(CONFIGURE [[
+        cmake_minimum_required(VERSION 3.7)
+        project(Dummy)
+        include("@CMAKE_SCRIPT_MODE_FILE@")
+        pmm(CONAN)
+    ]] cml @ONLY)
+    file(WRITE "${tmpdir}/conanfile.txt" "")
+    file(WRITE "${tmpdir}/CMakeLists.txt" "${cml}")
+    set(more_args)
+    if(_ninja_exe)
+        list(APPEND more_args "-GNinja")
+    endif()
+    # Configure the project
+    _pmm_log("Generating Conan profile ...")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" "-H${tmpdir}" "-B${tmpdir_build}" ${more_args}
+        RESULT_VARIABLE retc
+        OUTPUT_VARIABLE out
+        ERROR_VARIABLE out
+        )
+    if(retc)
+        message(FATAL_ERROR "Failed to configure project to generate Conan profile [${retc}]:\n${out}")
+    endif()
+    file(RENAME "${tmpdir_build}/pmm-conan.profile" "${destpath}")
+    _pmm_log("Conan profile written to file: ${destpath}")
+endfunction()
+
+
 function(_pmm_script_main_conan)
     _pmm_parse_args(
         .
@@ -695,7 +735,9 @@ function(_pmm_script_main_conan)
             /Install
             /Upgrade
             /Uninstall
-        - /Ref /Remote
+            /GenProfile
+            /Lazy  # For /GenProfile
+        + /Settings /Options
         )
 
     if(ARG_/Uninstall)
@@ -727,13 +769,38 @@ function(_pmm_script_main_conan)
         message(FATAL_ERROR "/Export and /Create can not be specified together")
     endif()
 
+    if(ARG_/GenProfile)
+        if(NOT ARG_/Profile)
+            message(FATAL_ERROR "Specify `/Profile <path>` when using /GenProfile")
+        endif()
+        get_filename_component(pr_dest "${ARG_/Profile}" ABSOLUTE)
+        _pmm_conan_gen_profile("${pr_dest}" "${ARG_/Lazy}")
+    endif()
+
+    set(profile_args)
+    if(ARG_/Profile)
+        set(profile_args --profile "${ARG_/Profile}")
+    endif()
+    set(settings_args)
+    foreach(s IN LISTS ARG_/Settings)
+        list(APPEND settings_args --settings "${s}")
+    endforeach()
+    set(options_args)
+    foreach(o IN LISTS ARG_/Options)
+        list(APPEND options_args --options "${o}")
+    endforeach()
+    # All args used for package install/create/info etc.:
+    set(all_config_args ${profile_args} ${settings_args} ${options_args})
+
+    set(create_args ${all_config_args})
+
     if(ARG_/Create)
         if(NOT ARG_/Ref)
             message(FATAL_ERROR "Pass a /Ref for /Create")
         endif()
         _pmm_ensure_conan()
         execute_process(
-            COMMAND "${PMM_CONAN_EXECUTABLE}" create "${CMAKE_SOURCE_DIR}" "${ARG_/Ref}"
+            COMMAND "${PMM_CONAN_EXECUTABLE}" create ${create_args} "${CMAKE_SOURCE_DIR}" "${ARG_/Ref}"
             RESULT_VARIABLE retc
             )
         if(retc)
@@ -759,7 +826,7 @@ function(_pmm_script_main_conan)
         if(ARG_/Ref MATCHES ".+@.+")
             set(full_ref "${ARG_/Ref}")
         else()
-            _pmm_exec("${PMM_CONAN_EXECUTABLE}" info "${CMAKE_SOURCE_DIR}")
+            _pmm_exec("${PMM_CONAN_EXECUTABLE}" info ${all_config_args} "${CMAKE_SOURCE_DIR}")
             if(_PMM_RC)
                 message(FATAL_ERROR "Failed to get package info [${_PMM_RC}]:\n${_PMM_OUTPUT}")
             endif()
