@@ -503,7 +503,7 @@ endmacro()
 
 
 macro(_pmm_conan_install)
-    if(CONAN_EXPORTED AND CONAN_IN_LOCAL_CACHE)
+    if(CONAN_EXPORTED)
         # When we are being built by conan in the local cache directory we don't need
         # to do an actual conan install: It has already been done for us.
         set(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake")
