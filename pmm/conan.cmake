@@ -1,7 +1,8 @@
-_pmm_set_if_undef(PMM_CONAN_MIN_VERSION         1.8.0)
-_pmm_set_if_undef(PMM_CONAN_MAX_VERSION         1.99999.0)
-_pmm_set_if_undef(PMM_CONAN_PIP_INSTALL_ARGS    "conan<${PMM_CONAN_MAX_VERSION}")
-_pmm_set_if_undef(PMM_CONAN_PIP_ALWAYS_INSTALL  FALSE)
+_pmm_set_if_undef(PMM_CONAN_MIN_VERSION           1.8.0)
+_pmm_set_if_undef(PMM_CONAN_MAX_VERSION           1.99999.0)
+_pmm_set_if_undef(PMM_CONAN_PIP_INSTALL_ARGS      "conan<${PMM_CONAN_MAX_VERSION}")
+_pmm_set_if_undef(PMM_CONAN_PIP_ALWAYS_INSTALL    FALSE)
+_pmm_set_if_undef(PMM_CONAN_IGNORE_EXTERNAL_CONAN FALSE)
 
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
@@ -81,28 +82,82 @@ function(_pmm_get_conan_venv py_name py_exe)
     endif()
 endfunction()
 
-macro(_pmm_conan_vars)
-    get_filename_component(_PMM_CONAN_VENV_DIR "${_PMM_USER_DATA_DIR}/_conan_venv" ABSOLUTE)
-endmacro()
+function(_pmm_conan_vars)
+    string(MD5 inst_cmd_hash "${PMM_CONAN_PIP_INSTALL_ARGS}")
+    string(SUBSTRING "${inst_cmd_hash}" 0 6 inst_cmd_hash)
+    get_filename_component(_PMM_CONAN_VENV_DIR "${_PMM_USER_DATA_DIR}/conan/venvs/${inst_cmd_hash}" ABSOLUTE)
+    _pmm_lift(_PMM_CONAN_VENV_DIR)
+endfunction()
+
+function(_pmm_conan_set_ensured)
+    set_property(GLOBAL PROPERTY pmm_CONAN_ALREADY_ENSURED TRUE)
+endfunction()
 
 # Ensure the presence of a `PMM_CONAN_EXECUTABLE` program
 function(_pmm_ensure_conan)
     set(req_install)
 
+    _pmm_conan_vars()
+
+    set(_PMM_CONAN_NEEDS_REINSTALL FALSE)
+    get_cmake_property(
+            __conan_ensure_ran
+            pmm_CONAN_ALREADY_ENSURED
+            )
+
     if(PMM_CONAN_EXECUTABLE)
         if(NOT EXISTS "${PMM_CONAN_EXECUTABLE}")
             _pmm_log(WARNING "Conan executable '${PMM_CONAN_EXECUTABLE}' from a prior configuration is gone.")
+            set(_PMM_CONAN_NEEDS_REINSTALL TRUE)
         else()
-            if(NOT PMM_CONAN_PIP_ALWAYS_INSTALL OR _PMM_ENSURE_CONAN_NO_INSTALL)
+            if(__conan_ensure_ran OR NOT PMM_CONAN_PIP_ALWAYS_INSTALL)
+                _pmm_conan_set_ensured()
                 _pmm_log(DEBUG "Conan executable already set: ${PMM_CONAN_EXECUTABLE}")
                 return()
             endif()
         endif()
     endif()
 
-    _pmm_conan_vars()
-    _pmm_log(DEBUG "Lock access to virtualenv directory ${_PMM_CONAN_VENV_DIR}")
+    # Find a user-installed Conan executable
+    # Try to find an existing Conan installation
+    set(pyenv_root_env "$ENV{PYENV_ROOT}")
+    if(pyenv_root_env)
+        file(GLOB pyenv_versions "${pyenv_root_env}/versions/*/")
+    else()
+        file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*/")
+    endif()
+    _pmm_log(VERBOSE "Found pyenv installations: ${pyenv_versions}")
+    set(_prev "${PMM_CONAN_EXECUTABLE}")
+    unset(PMM_CONAN_EXECUTABLE)
+    unset(PMM_CONAN_EXECUTABLE CACHE)
+    unset(PMM_CONAN_EXECUTABLE PARENT_SCOPE)
+    if(NOT PMM_CONAN_PIP_ALWAYS_INSTALL AND NOT PMM_CONAN_IGNORE_EXTERNAL_CONAN)
+        file(GLOB py_installs C:/Python*)
+        find_program(
+            PMM_CONAN_EXECUTABLE conan
+            HINTS
+                ${pyenv_versions}
+            PATHS
+                "$ENV{HOME}/.local"
+                ${py_installs}
+            PATH_SUFFIXES
+                .
+                bin
+                Scripts
+            DOC "Path to Conan executable"
+            )
+        if(PMM_CONAN_EXECUTABLE)
+            # We found an executable, and we haven't been asked to always install
+            if(NOT _prev)
+                _pmm_log("Found Conan: ${PMM_CONAN_EXECUTABLE}")
+            endif()
+            _pmm_conan_set_ensured()
+            return()
+        endif()
+    endif()
 
+    # Before we continue, lock access to the virtualenv
+    _pmm_log(DEBUG "Lock access to virtualenv directory ${_PMM_CONAN_VENV_DIR}")
     file(
         LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
         GUARD FUNCTION
@@ -131,39 +186,33 @@ function(_pmm_ensure_conan)
         endif()
     endif()
 
-    # Try to find an existing Conan installation
-    set(pyenv_root_env "$ENV{PYENV_ROOT}")
-    if(pyenv_root_env)
-        file(GLOB pyenv_versions "${pyenv_root_env}/versions/*/")
-    else()
-        file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*/")
-    endif()
-    _pmm_log(VERBOSE "Found pyenv installations: ${pyenv_versions}")
-    set(_prev "${PMM_CONAN_EXECUTABLE}")
-    unset(PMM_CONAN_EXECUTABLE)
-    unset(PMM_CONAN_EXECUTABLE CACHE)
-    unset(PMM_CONAN_EXECUTABLE PARENT_SCOPE)
-    if(NOT PMM_CONAN_PIP_ALWAYS_INSTALL)
-        file(GLOB py_installs C:/Python*)
-        find_program(
-            PMM_CONAN_EXECUTABLE conan
-            HINTS
-                "${_PMM_CONAN_VENV_DIR}"
-                ${pyenv_versions}
-            PATHS
-                "$ENV{HOME}/.local"
-                ${py_installs}
-            PATH_SUFFIXES
-                .
-                bin
-                Scripts
-            DOC "Path to Conan executable"
-            )
-        if(PMM_CONAN_EXECUTABLE)
-            # We found an executable, and we haven't been asked to always install
-            if(NOT _prev)
-                _pmm_log("Found Conan: ${PMM_CONAN_EXECUTABLE}")
+    # Find Conan in a virtualenv that PMM created
+    find_program(
+        PMM_CONAN_EXECUTABLE conan
+        PATHS "${_PMM_CONAN_VENV_DIR}"
+        NO_DEFAULT_PATH
+        PATH_SUFFIXES
+            .
+            bin
+            Scripts
+        DOC "Path to Conan executable"
+        )
+    if(PMM_CONAN_EXECUTABLE)
+        # We found one, but...
+        if(PMM_CONAN_PIP_ALWAYS_INSTALL)
+            # The user wants us to _always_ install a new Conan
+            get_cmake_property(reinst_notified pmm_CONAN_REINSTALL_NOTIFIED)
+            if(NOT reinst_notified)
+                _pmm_log("We found a PMM-provided Conan, but we need to re-install")
+                set_property(GLOBAL PROPERTY pmm_CONAN_REINSTALL_NOTIFIED TRUE)
             endif()
+            set(_PMM_CONAN_NEEDS_REINSTALL TRUE)
+            unset(PMM_CONAN_EXECUTABLE CACHE)
+        else()
+            if(NOT _prev)
+                _pmm_log("Found PMM-provided virtualenv Conan executable: ${PMM_CONAN_EXECUTABLE}")
+            endif()
+            _pmm_conan_set_ensured()
             return()
         endif()
     endif()
@@ -174,9 +223,7 @@ function(_pmm_ensure_conan)
     endif()
 
     if(PMM_CONAN_EXECUTABLE AND PMM_CONAN_PIP_ALWAYS_INSTALL)
-        _pmm_log("Reinstalling Conan.")
-    else()
-        _pmm_log("No existing Conan installation found. We'll try to obtain one.")
+        _pmm_log("Attempting to obtain a Conan binary...")
     endif()
 
     # Let's get Conan. Let's try to get it using Python
@@ -187,6 +234,7 @@ function(_pmm_ensure_conan)
         _pmm_log(VERBOSE "No Python 3 candidate found. We'll check Python 2.")
     endif()
     if(PMM_CONAN_EXECUTABLE)
+        _pmm_conan_set_ensured()
         return()
     endif()
     _pmm_find_python2(py2_exe)
@@ -194,6 +242,10 @@ function(_pmm_ensure_conan)
         _pmm_get_conan_venv("Python 2" "${py2_exe}")
     else()
         _pmm_log(VERBOSE "No Python 2 candidate found.")
+    endif()
+    if(PMM_CONAN_EXECUTABLE)
+        _pmm_conan_set_ensured()
+        return()
     endif()
     if(NOT py3_exe AND NOT py2_exe)
         message(FATAL_ERROR "No conan executable found, and no Python was found to install it.")
