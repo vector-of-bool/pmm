@@ -1,10 +1,12 @@
 function(_pmm_find_python3 ovar)
     set(pyenv_root_env "$ENV{PYENV_ROOT}")
+    set(pyenv_dirs)
     if(pyenv_root_env)
         file(GLOB pyenv_dirs "${pyenv_root_env}/versions/3.*/")
     else()
         file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/3.*/")
     endif()
+    list(SORT pyenv_dirs COMPARE FILE_BASENAME ORDER DESCENDING)
     file(GLOB c_python_dirs "C:/Python3*")
     find_program(
         _ret
@@ -26,6 +28,7 @@ function(_pmm_find_python3 ovar)
         PATH_SUFFIXES
             bin
             Scripts
+        NAMES_PER_DIR
         )
     if(_ret)
         execute_process(COMMAND "${_ret}" --version OUTPUT_VARIABLE out ERROR_VARIABLE out)
@@ -39,11 +42,13 @@ endfunction()
 
 function(_pmm_find_python2 ovar)
     set(pyenv_root_env "$ENV{PYENV_ROOT}")
+    set(pyenv_dirs)
     if(pyenv_root_env)
         file(GLOB pyenv_dirs "${pyenv_root_env}/versions/2.*/")
     else()
         file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/2.*/")
     endif()
+    list(SORT pyenv_dirs COMPARE FILE_BASENAME ORDER DESCENDING)
     file(GLOB c_python_dirs "C:/Python2*")
     find_program(
         _ret
@@ -55,6 +60,7 @@ function(_pmm_find_python2 ovar)
         HINTS
             ${pyenv_dirs}
             ${c_python_dirs}
+        NAMES_PER_DIR
         )
     if(_ret)
         execute_process(COMMAND "${_ret}" --version OUTPUT_VARIABLE out ERROR_VARIABLE out)
