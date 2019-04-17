@@ -625,7 +625,7 @@ function(_pmm_conan_ensure_remotes remotes)
     set_property(GLOBAL PROPERTY CONAN_REMOTES "")
     set(all_urls)
     foreach(line IN LISTS lines)
-        if(line MATCHES "^WARN: ")
+        if(line MATCHES "^(WARN|DEBUG): ")
             # Ignore this line
         elseif(NOT line MATCHES "^([^:]+): (.*) \\[Verify SSL: (.+)\]")
             message(WARNING "Unparseable `conan remote list` line: ${line}")
