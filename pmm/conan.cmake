@@ -231,9 +231,7 @@ function(_pmm_ensure_conan)
         return()
     endif()
 
-    if(PMM_CONAN_EXECUTABLE AND PMM_CONAN_PIP_ALWAYS_INSTALL)
-        _pmm_log("Attempting to obtain a Conan binary...")
-    endif()
+    _pmm_log("Attempting to obtain a Conan binary...")
 
     # Let's get Conan. Let's try to get it using Python
     _pmm_find_python3(py3_exe)
