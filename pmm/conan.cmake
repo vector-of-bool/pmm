@@ -157,6 +157,7 @@ function(_pmm_ensure_conan)
     endif()
 
     # Before we continue, lock access to the virtualenv
+    string(TIMESTAMP before_lock_time "%s" UTC)
     _pmm_log(DEBUG "Lock access to virtualenv directory ${_PMM_CONAN_VENV_DIR}")
     file(
         LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
@@ -185,6 +186,9 @@ function(_pmm_ensure_conan)
             endif()
         endif()
     endif()
+    string(TIMESTAMP after_lock_time "%s" UTC)
+    math(EXPR lock_wait_duration "${after_lock_time} - ${before_lock_time}")
+    _pmm_log(DEBUG "It took ${lock_wait_duration} seconds to obtain the virtualenv lock")
 
     # Find Conan in a virtualenv that PMM created
     find_program(
