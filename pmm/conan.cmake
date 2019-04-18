@@ -201,24 +201,29 @@ function(_pmm_ensure_conan)
             Scripts
         DOC "Path to Conan executable"
         )
-    if(PMM_CONAN_EXECUTABLE)
-        # We found one, but...
-        if(PMM_CONAN_PIP_ALWAYS_INSTALL)
-            # The user wants us to _always_ install a new Conan
-            get_cmake_property(reinst_notified pmm_CONAN_REINSTALL_NOTIFIED)
-            if(NOT reinst_notified)
-                _pmm_log("We found a PMM-provided Conan, but we need to re-install")
-                set_property(GLOBAL PROPERTY pmm_CONAN_REINSTALL_NOTIFIED TRUE)
-            endif()
-            set(_PMM_CONAN_NEEDS_REINSTALL TRUE)
-            unset(PMM_CONAN_EXECUTABLE CACHE)
-        else()
-            if(NOT _prev)
-                _pmm_log("Found PMM-provided virtualenv Conan executable: ${PMM_CONAN_EXECUTABLE}")
-            endif()
-            _pmm_conan_set_ensured()
-            return()
+    if(NOT PMM_CONAN_EXECUTABLE)
+        if(EXISTS "${_PMM_CONAN_VENV_DIR}/pyvenv.cfg")
+            message(WARNING
+                    "There exists a PMM Conan virtualenv directory "
+                    "(${_PMM_CONAN_VENV_DIR}), but we did not find a Conan "
+                    "executable inside it. This is very unexpected..."
+                    )
         endif()
+    elseif(PMM_CONAN_PIP_ALWAYS_INSTALL)
+        # The user wants us to _always_ install a new Conan
+        get_cmake_property(reinst_notified pmm_CONAN_REINSTALL_NOTIFIED)
+        if(NOT reinst_notified)
+            _pmm_log("We found a PMM-provided Conan, but we need to re-install")
+            set_property(GLOBAL PROPERTY pmm_CONAN_REINSTALL_NOTIFIED TRUE)
+        endif()
+        set(_PMM_CONAN_NEEDS_REINSTALL TRUE)
+        unset(PMM_CONAN_EXECUTABLE CACHE)
+    else()
+        if(NOT _prev)
+            _pmm_log("Found PMM-provided virtualenv Conan executable: ${PMM_CONAN_EXECUTABLE}")
+        endif()
+        _pmm_conan_set_ensured()
+        return()
     endif()
 
     if(_PMM_ENSURE_CONAN_NO_INSTALL)
