@@ -495,7 +495,6 @@ function(_pmm_conan_install_1)
     get_filename_component(conan_inc "${bin}/conanbuildinfo.cmake" ABSOLUTE)
     get_filename_component(conan_timestamp_file "${bin}/conaninfo.txt" ABSOLUTE)
     get_filename_component(libman_inc "${bin}/libman.cmake" ABSOLUTE)
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
 
     get_filename_component(profile_file "${bin}/pmm-conan.profile" ABSOLUTE)
     set(profile_lines "[settings]")
@@ -536,17 +535,30 @@ function(_pmm_conan_install_1)
         "${PMM_CONAN_EXECUTABLE}" install "${src}" ${conan_args}
         )
     set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd.txt")
+    # Check if we need to re-run the conan install
     set(do_install FALSE)
-    if(EXISTS "${conan_timestamp_file}" AND "${conanfile}" IS_NEWER_THAN "${conan_timestamp_file}")
-        _pmm_log(DEBUG "Need to run conan install: ${conanfile} is newer than the last install run")
-        set(do_install TRUE)
+    # Check if any "install inputs" are newer
+    set(more_inputs)
+    if(__install_depends)
+        file(GLOB_RECURSE more_inputs CONFIGURE_DEPENDS ${__install_depends})
     endif()
+    set(install_inputs "${__conanfile}" ${more_inputs})
+    foreach(inp IN LISTS install_inputs)
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${inp}")
+        if(EXISTS "${conan_timestamp_file}" AND "${inp}" IS_NEWER_THAN "${conan_timestamp_file}")
+            _pmm_log(DEBUG "Need to run conan install: ${inp} is newer than the last install run")
+            set(do_install TRUE)
+        endif()
+    endforeach()
+    # Check if the install has never occurred
     if(NOT EXISTS "${prev_cmd_file}")
         _pmm_log(DEBUG "Need to run conan install: Never been run")
         set(do_install TRUE)
+    # Or if the profile has changed
     elseif(profile_changed)
         _pmm_log(DEBUG "Need to run conan install: Profile has changed")
         set(do_install TRUE)
+    # Or if the install command has changed
     else()
         file(READ "${prev_cmd_file}" prev_cmd)
         if(NOT prev_cmd STREQUAL conan_install_cmd)
@@ -557,7 +569,7 @@ function(_pmm_conan_install_1)
     if(NOT do_install)
         _pmm_log(VERBOSE "Conan installation is up-to-date. Not running Conan.")
     else()
-        _pmm_log("Installing Conan requirements from ${conanfile}")
+        _pmm_log("Installing Conan requirements from ${__conanfile}")
         _pmm_exec(${conan_install_cmd}
             WORKING_DIRECTORY "${bin}"
             NO_EAT_OUTPUT
@@ -684,7 +696,7 @@ function(_pmm_conan)
     _pmm_parse_args(
         . BINCRAFTERS COMMUNITY
         - BUILD
-        + SETTINGS OPTIONS ENV REMOTES
+        + SETTINGS OPTIONS ENV REMOTES INSTALL_DEPENDS
         )
 
     get_cmake_property(__was_setup _PMM_CONAN_WAS_SETUP)
@@ -756,6 +768,8 @@ function(_pmm_conan)
         message(FATAL_ERROR "pf(CONAN) requires a Conanfile in your project source directory")
     endif()
     # Go!
+    set(__conanfile "${conanfile}")
+    set(__install_depends "${ARG_INSTALL_DEPENDS}")
     _pmm_conan_install()
     # Lift these env vars so that they are visible after pmm() returns
     _pmm_lift(CMAKE_MODULE_PATH)
