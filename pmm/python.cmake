@@ -6,6 +6,7 @@ function(_pmm_find_python3 ovar)
         file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/3.*/")
     endif()
     file(GLOB c_python_dirs "C:/Python3*")
+    list(REVERSE c_python_dirs)# Use the latest version instead of the oldest version
     find_program(
         _ret
         NAMES
@@ -45,6 +46,7 @@ function(_pmm_find_python2 ovar)
         file(GLOB pyenv_dirs "$ENV{HOME}/.pyenv/versions/2.*/")
     endif()
     file(GLOB c_python_dirs "C:/Python2*")
+    list(REVERSE c_python_dirs)# Use the latest version instead of the oldest version
     find_program(
         _ret
         NAMES
