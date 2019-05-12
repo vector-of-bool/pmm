@@ -111,6 +111,8 @@ pmm(
         REVISION <rev>
         # Ensure the given packages are installed using vcpkg
         [REQUIRES [req [...]]]
+        # Copy custom ports to the vcpkg ports directory
+        [PORTS [req [...]]]
     ]
     # Use CMakeCM
     [CMakeCM
@@ -186,6 +188,8 @@ or tag) that you could `git checkout` from the vcpkg repository. PMM will
 download the specified commit from GitHub and build the `vcpkg` command line
 tool from source. **You will need `std::filesystem` or `std::experimental::filesystem` support from your
 compiler and standard library.**
+
+If you want to copy custom ports to the vcpkg ports folder, you can define `PORTS` with a list of folders to copy over.
 
 `REQUIRES` is a list of packages that you would like to install using the
 `vcpkg` command line tool.
