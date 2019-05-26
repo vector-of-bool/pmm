@@ -74,8 +74,9 @@ Available options:
         (necessary for Conan upgrades)
 
     /Clean
-        Run conan remove * -fsb
-        This can be useful for CI builds before caching
+        Run `conan remove * -fsb`.
+        
+        Removes temporary source and build folders in the local conan cache.
 
     /Version
         Print the Conan version
