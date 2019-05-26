@@ -330,9 +330,10 @@ function(_pmm_conan_compute_compiler_settings out lang comp_id comp_version)
 endfunction()
 
 
-set(PMM_CONAN_POSSIBLE_ARCH_SMALL x86 x86_64 ppc64le ppc64 armv6 armv7 armv7hf armv8 sparc sparcv9 mips mips64 avr armv7s armv7k)
-set(PMM_CONAN_POSSIBLE_ARCH_LARGE x86 x86_64 ppc32 ppc64le ppc64 armv4 armv4i armv5el armv5hf armv6 armv7 armv7hf armv7s armv7k armv8 armv8_32 armv8.3 sparc sparcv9 mips mips64 avr s390 s390x asm.js wasm)
-function(_pmm_conan_compute_arch_setting out system_name system_processor sizeof_void_p)
+set(PMM_CONAN_SETTINGS_PY "${CMAKE_CURRENT_LIST_DIR}/conan.settings.py" CACHE INTERNAL "Settings reader")
+
+
+function(_pmm_conan_compute_arch_setting out arch_setting system_name system_processor sizeof_void_p)
     set(ret)
     if(system_name MATCHES "^Windows(Store|Phone)$" OR system_name STREQUAL "Windows")
         # Windows is always either x86_64 or x86.
@@ -352,19 +353,41 @@ function(_pmm_conan_compute_arch_setting out system_name system_processor sizeof
         else()
             set(ret x86)
         endif()
-    elseif(system_name STREQUAL "Linux")
-    elseif(system_name STREQUAL "Darwin")
-    elseif(system_name STREQUAL "Windows")
-    elseif(system_name STREQUAL "FreeBSD")
+    else()
+        if(NOT $ENV{CONAN_USER_HOME})
+            set(ENV{CONAN_USER_HOME} $ENV{HOME}/.conan)
+        endif()
+        # Python3 is required for `import yaml`
+        execute_process(COMMAND "/usr/bin/env" python3 "${PMM_CONAN_SETTINGS_PY}" ${arch_setting}
+            OUTPUT_VARIABLE valid_arch_settings
+            RESULT_VARIABLE result
+        )
+        if(result)
+            _pmm_log(WARNING "Unable to obtain valid ${arch_setting} values from $ENV{CONAN_USER_HOME}/settings.yml. Assuming the ${arch_setting} supports every architecture type")
+        else()
+            _pmm_log(DEBUG "Deterimned valid values of ${arch_setting} to be ${valid_arch_settings}")
+        endif()
+
+        set(proc_x86 x86 i386 i686)
+        set(proc_x86_64 x86_64 x64 amd64)
+        if(system_processor IN_LIST valid_arch_settings)
+            set(ret ${system_processor})
+        elseif(system_processor IN_LIST proc_x86)
+            set(ret x86)
+        elseif(system_processor IN_LIST proc_x86_64)
+            set(ret x86_64)
+        elseif(system_processor STREQUAL ppc)
+            set(ret ppc32)
+        elseif(system_processor STREQUAL ppcle)
+            set(ret ppc32)
+        # aarch64 == armv8: https://github.com/conan-io/conan/issues/417
+        elseif(sstem_processor STREQUAL aarch64)
+            set(ret armv8)
+        endif()
     endif()
 
     if(NOT ret)
-        # Todo: Allow architectures other than x86 and x86_64 on non-Windows
-        if(sizeof_void_p EQUAL 8)
-            set(ret x86_64)
-        else()
-            set(ret x86)
-        endif()
+        message(FATAL_ERROR "Unable to determine ${arch_setting}.")
     endif()
 
     set(${out} ${ret} PARENT_SCOPE)
@@ -428,13 +451,12 @@ function(_pmm_conan_get_settings out)
     endif()
 
     if(NOT ARG_SETTINGS MATCHES ";?arch=")
-        _pmm_conan_compute_arch_setting(arch ${sysname} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SIZEOF_VOID_P})
+        _pmm_conan_compute_arch_setting(arch arch ${sysname} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SIZEOF_VOID_P})
         _pmm_log(DEBUG "Using arch=${arch}")
         list(APPEND ret arch=${arch})
     endif()
     if(NOT ARG_SETTINGS MATCHES ";?arch_build=")
-        # Todo: Proper cross compiling support (don't assume host == target)
-        _pmm_conan_compute_arch_setting(arch_build ${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_HOST_SYSTEM_PROCESSOR} ${CMAKE_SIZEOF_VOID_P})
+        _pmm_conan_compute_arch_setting(arch_build arch_build ${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_HOST_SYSTEM_PROCESSOR} ${CMAKE_SIZEOF_VOID_P})
         _pmm_log(DEBUG "Using arch_build=${arch_build}")
         list(APPEND ret arch_build=${arch_build})
     endif()
