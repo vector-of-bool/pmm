@@ -363,7 +363,8 @@ function(_pmm_conan_compute_arch_setting out arch_setting system_name system_pro
             RESULT_VARIABLE result
         )
         if(result)
-            _pmm_log(WARNING "Unable to obtain valid ${arch_setting} values from $ENV{CONAN_USER_HOME}/settings.yml. Assuming the ${arch_setting} supports every architecture type")
+            _pmm_log(WARNING "Unable to obtain valid ${arch_setting} values from $ENV{CONAN_USER_HOME}/settings.yml.")
+            set(valid_arch_settings)
         else()
             _pmm_log(DEBUG "Deterimned valid values of ${arch_setting} to be ${valid_arch_settings}")
         endif()
