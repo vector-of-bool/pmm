@@ -73,6 +73,10 @@ Available options:
         Remove the Conan installation that PMM may have created
         (necessary for Conan upgrades)
 
+    /Clean
+        Run conan remove * -fsb
+        This can be useful for CI builds before caching
+
     /Version
         Print the Conan version
 
