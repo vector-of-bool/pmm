@@ -331,6 +331,7 @@ endfunction()
 
 
 function(_pmm_conan_compute_arch_setting out sizeof_void_p)
+    # Todo: Allow architectures other than x86 and x86_64
     if(sizeof_void_p EQUAL 8)
         set(ret x86_64)
     else()
@@ -378,6 +379,11 @@ function(_pmm_conan_get_settings out)
         _pmm_log(DEBUG "Using os=${os}")
         list(APPEND ret os=${os})
     endif()
+    if(NOT ARG_SETTINGS MATCHES ";?os_build=")
+        _pmm_conan_compute_os_setting(os_build ${CMAKE_HOST_SYSTEM_NAME})
+        _pmm_log(DEBUG "Using os_build=${os_build}")
+        list(APPEND ret os_build=${os_build})
+    endif()
 
     _pmm_conan_compute_compiler_settings(comp_settings "${lang}" "${comp_id}" "${comp_version}")
     list(APPEND ret ${comp_settings})
@@ -392,11 +398,16 @@ function(_pmm_conan_get_settings out)
         list(APPEND ret build_type=${bt})
     endif()
 
-    # Todo: Cross compiling
     if(NOT ARG_SETTINGS MATCHES ";?arch=")
         _pmm_conan_compute_arch_setting(arch ${CMAKE_SIZEOF_VOID_P})
         _pmm_log(DEBUG "Using arch=${arch}")
         list(APPEND ret arch=${arch})
+    endif()
+    if(NOT ARG_SETTINGS MATCHES ";?arch_build=")
+        # Todo: Proper cross compiling support (don't assume host == target)
+        _pmm_conan_compute_arch_setting(arch_build ${CMAKE_SIZEOF_VOID_P})
+        _pmm_log(DEBUG "Using arch_build=${arch_build}")
+        list(APPEND ret arch_build=${arch_build})
     endif()
 
     if(NOT ARG_SETTINGS MATCHES ";?cppstd=")
