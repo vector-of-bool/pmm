@@ -330,12 +330,41 @@ function(_pmm_conan_compute_compiler_settings out lang comp_id comp_version)
 endfunction()
 
 
-function(_pmm_conan_compute_arch_setting out sizeof_void_p)
-    # Todo: Allow architectures other than x86 and x86_64
-    if(sizeof_void_p EQUAL 8)
-        set(ret x86_64)
-    else()
-        set(ret x86)
+set(PMM_CONAN_POSSIBLE_ARCH_SMALL x86 x86_64 ppc64le ppc64 armv6 armv7 armv7hf armv8 sparc sparcv9 mips mips64 avr armv7s armv7k)
+set(PMM_CONAN_POSSIBLE_ARCH_LARGE x86 x86_64 ppc32 ppc64le ppc64 armv4 armv4i armv5el armv5hf armv6 armv7 armv7hf armv7s armv7k armv8 armv8_32 armv8.3 sparc sparcv9 mips mips64 avr s390 s390x asm.js wasm)
+function(_pmm_conan_compute_arch_setting out system_name system_processor sizeof_void_p)
+    set(ret)
+    if(system_name MATCHES "^Windows(Store|Phone)$" OR system_name STREQUAL "Windows")
+        # Windows is always either x86_64 or x86.
+        # Possible values of $ENV{PROCESSOR_ARCHITECTURE} (and thus ${system_processor})
+        # for the host/target are:
+        #
+        # AMD64, IA64, ARM64, EM64T, X86
+        #
+        # Conan supports x86, x86_64, armvNN....
+        #
+        # Windows non-phones are always either x86 or x86_64. Windows RT could be an ARMv7,
+        # but Windows RT is discontinued.
+        if(system_processor STREQUAL ARM64)
+            set(ret armv7) # Windows RT
+        elseif(sizeof_void_p EQUAL 8)
+            set(ret x86_64)
+        else()
+            set(ret x86)
+        endif()
+    elseif(system_name STREQUAL "Linux")
+    elseif(system_name STREQUAL "Darwin")
+    elseif(system_name STREQUAL "Windows")
+    elseif(system_name STREQUAL "FreeBSD")
+    endif()
+
+    if(NOT ret)
+        # Todo: Allow architectures other than x86 and x86_64 on non-Windows
+        if(sizeof_void_p EQUAL 8)
+            set(ret x86_64)
+        else()
+            set(ret x86)
+        endif()
     endif()
 
     set(${out} ${ret} PARENT_SCOPE)
@@ -399,13 +428,13 @@ function(_pmm_conan_get_settings out)
     endif()
 
     if(NOT ARG_SETTINGS MATCHES ";?arch=")
-        _pmm_conan_compute_arch_setting(arch ${CMAKE_SIZEOF_VOID_P})
+        _pmm_conan_compute_arch_setting(arch ${sysname} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SIZEOF_VOID_P})
         _pmm_log(DEBUG "Using arch=${arch}")
         list(APPEND ret arch=${arch})
     endif()
     if(NOT ARG_SETTINGS MATCHES ";?arch_build=")
         # Todo: Proper cross compiling support (don't assume host == target)
-        _pmm_conan_compute_arch_setting(arch_build ${CMAKE_SIZEOF_VOID_P})
+        _pmm_conan_compute_arch_setting(arch_build ${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_HOST_SYSTEM_PROCESSOR} ${CMAKE_SIZEOF_VOID_P})
         _pmm_log(DEBUG "Using arch_build=${arch_build}")
         list(APPEND ret arch_build=${arch_build})
     endif()
