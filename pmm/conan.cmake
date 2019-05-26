@@ -1,6 +1,7 @@
 set(PMM_CONAN_MIN_VERSION 1.8.0     CACHE INTERNAL "Minimum Conan version we support")
 set(PMM_CONAN_MAX_VERSION 1.99999.0 CACHE INTERNAL "Maximum Conan version we support")
 
+set(PMM_CONAN_CPPSTD_DEPRECATE_VERSION 1.15.0 CACHE INTERNAL "Conan version to switch cppstd to compiler.cppstd")
 
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
@@ -377,9 +378,13 @@ function(_pmm_conan_get_settings out)
         endif()
     endif()
 
-    if(NOT ARG_SETTINGS MATCHES ";?cppstd=")
+    if(NOT (ARG_SETTINGS MATCHES ";?(compiler\\.)?cppstd="))
         if(CMAKE_CXX_STANDARD)
-            list(APPEND ret cppstd=${CMAKE_CXX_STANDARD})
+            if(CONAN_VERSION VERSION_LESS PMM_CONAN_CPPSTD_DEPRECATE_VERSION)
+                list(APPEND ret cppstd=${CMAKE_CXX_STANDARD})
+            else()
+                list(APPEND ret compiler.cppstd=${CMAKE_CXX_STANDARD})
+            endif()
         endif()
     endif()
 
