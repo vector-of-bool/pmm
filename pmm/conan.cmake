@@ -232,40 +232,7 @@ function(_pmm_conan_upgrade)
 endfunction()
 
 
-function(_pmm_conan_get_settings out)
-    _pmm_log(DEBUG "Calculating Conan settings values")
-    set(ret)
-    get_cmake_property(langs ENABLED_LANGUAGES)
-    set(lang CXX)
-    if(NOT "CXX" IN_LIST langs)
-        set(lang C)
-        if(NOT "C" IN_LIST langs)
-            message(FATAL_ERROR "pmm(CONAN) requires that either C or C++ languages be enabled.")
-        endif()
-    endif()
-    set(comp_id "${CMAKE_${lang}_COMPILER_ID}")
-    set(comp_version "${CMAKE_${lang}_COMPILER_VERSION}")
-
-    _pmm_log(DEBUG "Using language ${lang} compiler information (ID is ${comp_id}, version is ${comp_version})")
-
-    set(majmin_ver_re "^([0-9]+\\.[0-9]+)")
-
-    # Check if the user is mixing+matching compilers.
-    if("C" IN_LIST langs AND "CXX" IN_LIST langs)
-        if(NOT CMAKE_C_COMPILER_ID STREQUAL CMAKE_CXX_COMPILER_ID)
-            _pmm_log(WARNING "Mixing compiler vendors for C and C++ may produce unexpected results.")
-        else()
-            if(NOT CMAKE_C_COMPILER_VERSION STREQUAL CMAKE_CXX_COMPILER_VERSION)
-                _pmm_log(WARNING "Mixing compiler versions for C and C++ may produce unexpected results.")
-            endif()
-        endif()
-    endif()
-
-    # Detect the OS information
-    set(sysname "${CMAKE_SYSTEM_NAME}")
-    if(NOT sysname AND CMAKE_HOST_SYSTEM_NAME)
-        set(sysname "${CMAKE_HOST_SYSTEM_NAME}")
-    endif()
+function(_pmm_conan_compute_os_setting out sysname)
     if(sysname MATCHES "^Windows(Store|Phone)$")
         set(os WindowsStore)
     elseif(sysname STREQUAL "Linux")
@@ -277,11 +244,14 @@ function(_pmm_conan_get_settings out)
     elseif(sysname STREQUAL "FreeBSD")
         set(os FreeBSD)
     endif()
-    if(NOT ARG_SETTINGS MATCHES ";?os=")
-        _pmm_log(DEBUG "Using os=${os}")
-        list(APPEND ret os=${os})
-    endif()
 
+    set(${out} ${os} PARENT_SCOPE)
+endfunction()
+
+
+function(_pmm_conan_compute_compiler_settings out lang comp_id comp_version)
+    set(ret)
+    set(majmin_ver_re "^([0-9]+\\.[0-9]+)")
     ## Check for GNU (GCC)
     if(comp_id STREQUAL GNU)
         # Use 'gcc'
@@ -356,6 +326,62 @@ function(_pmm_conan_get_settings out)
         message(FATAL_ERROR "Unable to detect compiler setting for Conan from CMake. (Unhandled compiler ID ${comp_id}).")
     endif()
 
+    set(${out} ${ret} PARENT_SCOPE)
+endfunction()
+
+
+function(_pmm_conan_compute_arch_setting out sizeof_void_p)
+    if(sizeof_void_p EQUAL 8)
+        set(ret x86_64)
+    else()
+        set(ret x86)
+    endif()
+
+    set(${out} ${ret} PARENT_SCOPE)
+endfunction()
+
+
+function(_pmm_conan_get_settings out)
+    _pmm_log(DEBUG "Calculating Conan settings values")
+    set(ret)
+    get_cmake_property(langs ENABLED_LANGUAGES)
+    set(lang CXX)
+    if(NOT "CXX" IN_LIST langs)
+        set(lang C)
+        if(NOT "C" IN_LIST langs)
+            message(FATAL_ERROR "pmm(CONAN) requires that either C or C++ languages be enabled.")
+        endif()
+    endif()
+    set(comp_id "${CMAKE_${lang}_COMPILER_ID}")
+    set(comp_version "${CMAKE_${lang}_COMPILER_VERSION}")
+
+    _pmm_log(DEBUG "Using language ${lang} compiler information (ID is ${comp_id}, version is ${comp_version})")
+
+    # Check if the user is mixing+matching compilers.
+    if("C" IN_LIST langs AND "CXX" IN_LIST langs)
+        if(NOT CMAKE_C_COMPILER_ID STREQUAL CMAKE_CXX_COMPILER_ID)
+            _pmm_log(WARNING "Mixing compiler vendors for C and C++ may produce unexpected results.")
+        else()
+            if(NOT CMAKE_C_COMPILER_VERSION STREQUAL CMAKE_CXX_COMPILER_VERSION)
+                _pmm_log(WARNING "Mixing compiler versions for C and C++ may produce unexpected results.")
+            endif()
+        endif()
+    endif()
+
+    # Detect the OS information
+    set(sysname "${CMAKE_SYSTEM_NAME}")
+    if(NOT sysname AND CMAKE_HOST_SYSTEM_NAME)
+        set(sysname "${CMAKE_HOST_SYSTEM_NAME}")
+    endif()
+    if(NOT ARG_SETTINGS MATCHES ";?os=")
+        _pmm_conan_compute_os_setting(os ${sysname})
+        _pmm_log(DEBUG "Using os=${os}")
+        list(APPEND ret os=${os})
+    endif()
+
+    _pmm_conan_compute_compiler_settings(comp_settings "${lang}" "${comp_id}" "${comp_version}")
+    list(APPEND ret ${comp_settings})
+
     if(NOT CMAKE_CONFIGURATION_TYPES)
         set(bt "${CMAKE_BUILD_TYPE}")
         if(NOT bt)
@@ -368,13 +394,9 @@ function(_pmm_conan_get_settings out)
 
     # Todo: Cross compiling
     if(NOT ARG_SETTINGS MATCHES ";?arch=")
-        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-            _pmm_log(DEBUG "Using arch=${x86_64}")
-            list(APPEND ret arch=x86_64)
-        else()
-            _pmm_log(DEBUG "Using arch=${x86}")
-            list(APPEND ret arch=x86)
-        endif()
+        _pmm_conan_compute_arch_setting(arch ${CMAKE_SIZEOF_VOID_P})
+        _pmm_log(DEBUG "Using arch=${arch}")
+        list(APPEND ret arch=${arch})
     endif()
 
     if(NOT ARG_SETTINGS MATCHES ";?cppstd=")
