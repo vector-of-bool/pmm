@@ -794,6 +794,7 @@ function(_pmm_conan_gen_profile destpath be_lazy)
     string(CONFIGURE [[
         cmake_minimum_required(VERSION 3.7)
         project(Dummy)
+        set(PMM_DIR "@PMM_DIR@")
         include("@CMAKE_SCRIPT_MODE_FILE@")
         pmm(CONAN)
     ]] cml @ONLY)
