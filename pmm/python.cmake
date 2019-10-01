@@ -71,3 +71,13 @@ function(_pmm_find_python2 ovar)
     set("${ovar}" "${_ret}" PARENT_SCOPE)
     unset(_ret CACHE)
 endfunction()
+
+
+function(_pmm_find_python_any ovar)
+    set(ret)
+    _pmm_find_python3(ret)
+    if(NOT ret)
+        _pmm_find_python2(ret)
+    endif()
+    set("${ovar}" "${ret}" PARENT_SCOPE)
+endfunction()
