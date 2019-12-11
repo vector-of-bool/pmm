@@ -18,7 +18,7 @@ endif()
 function(_pmm_project_fn)
     _pmm_parse_args(
         . DEBUG VERBOSE
-        + CONAN VCPKG CMakeCM
+        + CONAN VCPKG CMakeCM DDS
         )
 
     if(ARG_DEBUG)
@@ -38,6 +38,9 @@ function(_pmm_project_fn)
     if(DEFINED ARG_CMakeCM OR "CMakeCM" IN_LIST ARGV)
         _pmm_cmcm(${ARG_CMakeCM})
         _pmm_lift(CMAKE_MODULE_PATH)
+    endif()
+    if(DEFINED ARG_DDS OR "DDS" IN_LIST ARGV)
+        _pmm_dds(${ARG_DDS})
     endif()
     _pmm_lift(_PMM_INCLUDE)
 endfunction()
