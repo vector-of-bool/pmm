@@ -729,6 +729,22 @@ function(_pmm_conan_ensure_remotes remotes)
     endwhile()
 endfunction()
 
+function(_pmm_generate_conan_cli_scripts)
+    # The sh scipt
+    if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.sh")
+        file(WRITE "${_PMM_USER_DATA_DIR}/conan.sh" "#!/bin/sh\n\"${PMM_CONAN_EXECUTABLE}\" \"$@\"")
+        # Fix to make the sh executable
+        file(COPY "${_PMM_USER_DATA_DIR}/conan.sh"
+                DESTINATION ${CMAKE_BINARY_DIR}
+                FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+                )
+    endif ()
+    # The bat scipt
+    if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.bat")
+        file(WRITE "${CMAKE_BINARY_DIR}/conan.bat" "@echo off\n\"${PMM_CONAN_EXECUTABLE}\" %*")
+    endif ()
+endfunction()
+
 # Implement the `CONAN` subcommand
 function(_pmm_conan)
     _pmm_parse_args(
@@ -787,6 +803,7 @@ function(_pmm_conan)
     endif()
     # Keep track of what exe we just found
     set(CONAN_PREV_EXE "${PMM_CONAN_EXECUTABLE}" CACHE INTERNAL "Previous known-good Conan executable" FORCE)
+    _pmm_generate_conan_cli_scripts()
 
     # Find the conanfile for the project
     unset(conanfile)
