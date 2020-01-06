@@ -13,13 +13,13 @@ function(_pmm_get_dds_exe out)
     set(sysname "${CMAKE_HOST_SYSTEM_NAME}")
     if(sysname MATCHES "^Windows")
         set(dds_dest "${PMM_DIR}/dds.exe")
-        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/bootstrap-p4/dds-win-x64.exe")
+        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.2/dds-win-x64.exe")
     elseif(sysname STREQUAL "Linux")
         set(dds_dest "${PMM_DIR}/dds")
-        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/bootstrap-p4/dds-linux-x64")
+        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.2/dds-linux-x64")
     elseif(sysname STREQUAL "Darwin")
         set(dds_dest "${PMM_DIR}/dds")
-        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/bootstrap-p4/dds-macos-x64")
+        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.2/dds-macos-x64")
     else()
         message(FATAL_ERROR "We are unnable to automatically download a DDS executable for this system.")
     endif()
@@ -116,7 +116,7 @@ function(_pmm_dds_generate_toolchain out)
 endfunction()
 
 function(_pmm_dds)
-    _pmm_log(WARNING "DDS support is extremely experimental, and not yet supported!")
+    _pmm_log(WARNING "dds support is experimental! Don't rely on this for critical systems!")
     _pmm_parse_args(
         - TOOLCHAIN
         + DEP_FILES DEPENDS
@@ -137,7 +137,11 @@ function(_pmm_dds)
 
     list(APPEND bdeps_args "--toolchain=${ARG_TOOLCHAIN}")
 
-    _pmm_exec("${dds_exe}" build-deps ${bdeps_args} NO_EAT_OUTPUT)
+    _pmm_exec(
+        "${dds_exe}" build-deps ${bdeps_args}
+        NO_EAT_OUTPUT
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        )
     if(_PMM_RC)
         message(FATAL_ERROR "DDS failed to build our dependencies [${_PMM_RC}]")
     endif()
