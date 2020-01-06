@@ -84,11 +84,20 @@ function(_pmm_exec)
             ERROR_VARIABLE out
             )
     endif()
+    list(FIND ARGN WORKING_DIRECTORY wd_kw_idx)
+    set(wd_arg)
+    if(wd_kw_idx GREATER -1)
+        math(EXPR wd_idx "${wd_kw_idx} + 1")
+        list(GET ARGN "${wd_idx}" wd_dir)
+        LIST(REMOVE_AT ARGN "${wd_idx}" "${wd_kw_idx}")
+        set(wd_arg WORKING_DIRECTORY "${wd_dir}")
+    endif()
     list(REMOVE_ITEM ARGN NO_EAT_OUTPUT)
     execute_process(
         COMMAND ${ARGN}
         ${output_args}
         RESULT_VARIABLE rc
+        ${wd_arg}
         )
     set(_PMM_RC "${rc}" PARENT_SCOPE)
     set(_PMM_OUTPUT "${out}" PARENT_SCOPE)
