@@ -80,6 +80,9 @@ if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
         "Fix: Parse Conan output when finding the package ref with no user/channel"
         "Fix: CONAN_IN_LOCAL_CACHE isn't necessarily set when being exported"
         )
+    _pmm_changes(1.4.1
+        "New: Experimental DDS mode is now available."
+        )
     message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
     message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
 endif()
