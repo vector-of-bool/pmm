@@ -13,13 +13,16 @@ function(_pmm_get_dds_exe out)
     set(sysname "${CMAKE_HOST_SYSTEM_NAME}")
     if(sysname MATCHES "^Windows")
         set(dds_dest "${PMM_DIR}/dds.exe")
-        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.2/dds-win-x64.exe")
+        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.3/dds-win-x64.exe")
     elseif(sysname STREQUAL "Linux")
         set(dds_dest "${PMM_DIR}/dds")
-        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.2/dds-linux-x64")
+        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.3/dds-linux-x64")
     elseif(sysname STREQUAL "Darwin")
         set(dds_dest "${PMM_DIR}/dds")
-        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.2/dds-macos-x64")
+        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.3/dds-macos-x64")
+    elseif(sysname STREQUAL "FreeBSD")
+        set(dds_dest "${PMM_DIR}/dds")
+        set(dds_url "https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.3/dds-freebsd-x64")
     else()
         message(FATAL_ERROR "We are unnable to automatically download a DDS executable for this system.")
     endif()
@@ -47,7 +50,7 @@ function(_pmm_get_dds_exe out)
 endfunction()
 
 function(_pmm_dds_generate_toolchain out)
-    get_filename_component(toolchain_dest "${PMM_DIR}/dds-toolchain.dds" ABSOLUTE)
+    get_filename_component(toolchain_dest "${PMM_DIR}/dds-toolchain.json5" ABSOLUTE)
 
     # First, determine the Compiler-ID
     if(DEFINED CMAKE_CXX_COMPILER_ID)
@@ -62,20 +65,22 @@ function(_pmm_dds_generate_toolchain out)
         _pmm_log(WARNING "It is likely that you will need to write your own toolchain file by hand...")
     endif()
 
+    string(TOLOWER "${comp_id}" comp_id)
+
     # Now, determine the language version
     if(CMAKE_CXX_STANDARD EQUAL 98)
-        set(cxx_version "C++98")
+        set(cxx_version "c++98")
     elseif(CMAKE_CXX_STANDARD EQUAL 11)
-        set(cxx_version "C++11")
+        set(cxx_version "c++11")
     elseif(CMAKE_CXX_STANDARD EQUAL 14)
-        set(cxx_version "C++14")
+        set(cxx_version "c++14")
     elseif(CMAKE_CXX_STANDARD EQUAL 17)
-        set(cxx_version "C++17")
+        set(cxx_version "c++17")
     elseif(CMAKE_CXX_STANDARD EQUAL 20)
-        set(cxx_version "C++20")
+        set(cxx_version "c++20")
     elseif(NOT CMAKE_CXX_STANDARD)
         _pmm_log("No language standard inferred. Using C++17.")
-        set(cxx_version "C++17")
+        set(cxx_version "c++17")
     else()
         _pmm_log(WARNING "We don't recognize the CXX_STANDARD version '${CMAKE_CXX_STANDARD}'.")
         _pmm_log(WARNING "You may want to specify a standard version when calling pmm()")
@@ -83,33 +88,34 @@ function(_pmm_dds_generate_toolchain out)
 
     set(c_compiler_line)
     if(CMAKE_C_COMPILER)
-        set(c_compiler_line "C-Compiler: ${CMAKE_C_COMPILER}")
+        set(c_compiler_line "c_compiler: '${CMAKE_C_COMPILER}',")
     endif()
 
     set(cxx_compiler_line)
     if(CMAKE_CXX_COMPILER)
-        set(cxx_compiler_line "C++-Compiler: ${CMAKE_CXX_COMPILER}")
+        set(cxx_compiler_line "cxx_compiler: '${CMAKE_CXX_COMPILER}',")
     endif()
 
     if(CMAKE_BUILD_TYPE MATCHES "^(Debug|RelWithDebInfo|)$")
-        set(debug True)
+        set(debug true)
     else()
-        set(debug False)
+        set(debug false)
     endif()
 
     if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel)$")
-        set(optimize True)
+        set(optimize true)
     else()
-        set(optimize False)
+        set(optimize false)
     endif()
 
     string(CONFIGURE [[
-        Compiler-ID: @comp_id@
-        C++-Version: @cxx_version@
-        @c_compiler_line@
-        @cxx_compiler_line@
-        Debug: @debug@
-        Optimize: @optimize@
+        {
+            compiler_id: '@comp_id@',
+            @c_compiler_line@
+            @cxx_compiler_line@
+            debug: @debug@,
+            optimize: @optimize@,
+        }
     ]] toolchain_content @ONLY)
     file(WRITE "${toolchain_dest}" "${toolchain_content}")
     set("${out}" "${toolchain_dest}" PARENT_SCOPE)
@@ -118,6 +124,7 @@ endfunction()
 function(_pmm_dds)
     _pmm_log(WARNING "dds support is experimental! Don't rely on this for critical systems!")
     _pmm_parse_args(
+        -hardcheck
         - TOOLCHAIN
         + DEP_FILES DEPENDS
         )
