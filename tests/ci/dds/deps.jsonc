@@ -1,0 +1,5 @@
+{
+    "depends": {
+        // No dependencies, we just want to check that `dds` runs properly
+    }
+}
