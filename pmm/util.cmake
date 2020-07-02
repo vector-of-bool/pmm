@@ -35,22 +35,26 @@ endfunction()
 #   inhibits macro argument substitution. It is painful, but it makes this magic
 #   work.
 macro(_pmm_parse_args)
-    cmake_parse_arguments(_ "-nocheck" "" ".;-;+" "${ARGV}")
-    _pmm_parse_arglist("${${}ARGV}" "${__.}" "${__-}" "${__+}")
+    cmake_parse_arguments(_ "-nocheck;-hardcheck" "" ".;-;+" "${ARGV}")
+    set(__arglist "${${}ARGV}")
+    _pmm_parse_arglist("${__.}" "${__-}" "${__+}")
 endmacro()
 
 macro(_pmm_parse_script_args)
-    cmake_parse_arguments(_ "-nocheck" "" ".;-;+" "${ARGV}")
-    _pmm_read_script_argv(__script_argv)
-    _pmm_parse_arglist("${__script_argv}" "${__.}" "${__-}" "${__+}")
+    cmake_parse_arguments(_ "-nocheck;-hardcheck" "" ".;-;+" "${ARGV}")
+    _pmm_read_script_argv(__arglist)
+    _pmm_parse_arglist("${__.}" "${__-}" "${__+}")
 endmacro()
 
-macro(_pmm_parse_arglist argv opt args list_args)
-    cmake_parse_arguments(ARG "${opt}" "${args}" "${list_args}" "${argv}")
+macro(_pmm_parse_arglist opt args list_args)
+    cmake_parse_arguments(ARG "${opt}" "${args}" "${list_args}" "${__arglist}")
     if(NOT __-nocheck)
         foreach(arg IN LISTS ARG_UNPARSED_ARGUMENTS)
             message(WARNING "Unknown argument: ${arg}")
         endforeach()
+        if(__-hardcheck AND NOT ("${ARG_UNPARSED_ARGUMENTS}" STREQUAL ""))
+            message(FATAL_ERROR "Unknown arguments provided.")
+        endif()
     endif()
 endmacro()
 
@@ -80,11 +84,20 @@ function(_pmm_exec)
             ERROR_VARIABLE out
             )
     endif()
+    list(FIND ARGN WORKING_DIRECTORY wd_kw_idx)
+    set(wd_arg)
+    if(wd_kw_idx GREATER -1)
+        math(EXPR wd_idx "${wd_kw_idx} + 1")
+        list(GET ARGN "${wd_idx}" wd_dir)
+        LIST(REMOVE_AT ARGN "${wd_idx}" "${wd_kw_idx}")
+        set(wd_arg WORKING_DIRECTORY "${wd_dir}")
+    endif()
     list(REMOVE_ITEM ARGN NO_EAT_OUTPUT)
     execute_process(
         COMMAND ${ARGN}
         ${output_args}
         RESULT_VARIABLE rc
+        ${wd_arg}
         )
     set(_PMM_RC "${rc}" PARENT_SCOPE)
     set(_PMM_OUTPUT "${out}" PARENT_SCOPE)

@@ -25,3 +25,15 @@ endif()
 if(NOT NO_CI_TEST_DIR)
     add_subdirectory(ci)
 endif()
+
+add_test(
+    NAME pmm.generate-profile
+    COMMAND
+        ${CMAKE_COMMAND}
+        -DPMM_URL=file://${PROJECT_SOURCE_DIR}/pmm
+        -DPMM_ALWAYS_DOWNLOAD=1
+        -P "${PROJECT_SOURCE_DIR}/pmm.cmake"
+        /Conan
+        /GenProfile
+        /Profile ${PROJECT_BINARY_DIR}/dummy-test.profile
+    )

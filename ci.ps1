@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param(
     # Run the Docker tests
     [switch]

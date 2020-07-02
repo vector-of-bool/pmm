@@ -1,7 +1,7 @@
 FROM ubuntu:xenial
 
 RUN apt-get update
-RUN apt-get -y install curl gcc g++ python3 python3-venv make
+RUN apt-get -y install wget curl gcc g++ python3 python3-venv make
 
-RUN curl https://cmake.org/files/v3.12/cmake-3.12.2-Linux-x86_64.sh -o /tmp/cmake.sh
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.16.1/cmake-3.16.1-Linux-x86_64.sh --no-check-certificate -nv -O /tmp/cmake.sh
 RUN sh /tmp/cmake.sh --exclude-subdir --prefix=/usr/local

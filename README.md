@@ -118,8 +118,19 @@ pmm(
         # download from
         {ROLLING | FROM <base-url>}
     ]
+    # Use dds
+    [DDS
+        # Specify a toolchain. Given as the --toolchain argument to `build-deps`.
+        # If not specified, one will be generated automatically.
+        [TOOLCHAIN <toolchain>]
+        # List of dependency files. Given as --deps to `build-deps`.
+        [DEP_FILES [filepath [...]]]
+        # List of direct dependency strings.
+        [DEPENDS [dep [...]]]
+    ]
 )
 ```
+
 
 ## `CONAN` PMM mode
 
@@ -160,6 +171,7 @@ to get your dependency information.
 You will still need to read the Conan documentation to understand the basics of
 how to declare and consume your dependencies.
 
+
 ## `VCPKG` PMM mode
 
 In `VCPKG` mode, PMM will download the vcpkg repository at the given
@@ -181,6 +193,7 @@ file: PMM will take care of this aspect for you.
 After calling `pmm(VCPKG)`, all you need to do is `find_package()` the
 packages that you want to use.
 
+
 ## `CMakeCM` PMM mode
 
 If `CMakeCM` is provided, PMM will download and make available the [CMake
@@ -197,6 +210,20 @@ PMM:
 - If you specify `FROM`, the module index will only be obtained from the given
   base URL. **Note:** This URL *is not* the URL of a `CMakeCM.cmake` file: It
   is a url that *prefixes* the `CMakeCM.cmake` module URL.
+
+
+## `DDS` PMM mode
+
+With `DDS`, PMM will automatically download and use `dds` to install
+dependencies. This will result in the generation of an `INDEX.lmi` file within
+the build directory that can be imported using the `libman` CMake module's
+`import_packages` function (currently available via CMakeCM).
+
+**NOTE**: `dds` support is still very experimental, and `dds` itself is very
+new at the time of this writing. Refer to [the `dds`
+documentation](https://vector-of-bool.github.io/docs/dds/) for information
+about using `dds`.
+
 
 # Helper Commands
 
