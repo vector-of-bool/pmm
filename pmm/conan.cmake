@@ -4,6 +4,8 @@ _pmm_set_if_undef(PMM_CONAN_PIP_INSTALL_ARGS      "conan<${PMM_CONAN_MAX_VERSION
 _pmm_set_if_undef(PMM_CONAN_PIP_ALWAYS_INSTALL    FALSE)
 _pmm_set_if_undef(PMM_CONAN_IGNORE_EXTERNAL_CONAN FALSE)
 
+set(PMM_CONAN_CPPSTD_DEPRECATE_VERSION 1.15.0 CACHE INTERNAL "Conan version to switch cppstd to compiler.cppstd")
+
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
 function(_pmm_get_conan_venv py_name py_exe)
@@ -486,9 +488,13 @@ function(_pmm_conan_get_settings out)
         endif()
     endif()
 
-    if(NOT ARG_SETTINGS MATCHES ";?cppstd=")
+    if(NOT (ARG_SETTINGS MATCHES ";?(compiler\\.)?cppstd="))
         if(CMAKE_CXX_STANDARD)
-            list(APPEND ret cppstd=${CMAKE_CXX_STANDARD})
+            if(CONAN_VERSION VERSION_LESS PMM_CONAN_CPPSTD_DEPRECATE_VERSION)
+                list(APPEND ret cppstd=${CMAKE_CXX_STANDARD})
+            else()
+                list(APPEND ret compiler.cppstd=${CMAKE_CXX_STANDARD})
+            endif()
         endif()
     endif()
 
