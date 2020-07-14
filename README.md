@@ -123,6 +123,9 @@ pmm(
         # Specify a toolchain. Given as the --toolchain argument to `build-deps`.
         # If not specified, one will be generated automatically.
         [TOOLCHAIN <toolchain>]
+        # Give a path to a catalog json5 file to import before doing dependency
+        # resolution. If not provided, the user-local catalog will be used.
+        [CATALOG <catalog-json-path>]
         # List of dependency files. Given as --deps to `build-deps`.
         [DEP_FILES [filepath [...]]]
         # List of direct dependency strings.
