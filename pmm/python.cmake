@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.13)
+
 function(_pmm_find_python3 ovar)
     set(pyenv_root_env "$ENV{PYENV_ROOT}")
     set(pyenv_dirs)

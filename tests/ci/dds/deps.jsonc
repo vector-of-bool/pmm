@@ -1,5 +1,5 @@
 {
-    "depends": {
-        // No dependencies, we just want to check that `dds` runs properly
-    }
+    "depends": [
+        "spdlog^1.7.0"
+    ]
 }
