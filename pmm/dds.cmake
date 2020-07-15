@@ -53,6 +53,22 @@ function(_pmm_get_dds_exe out)
     set("${out}" "${dds_dest}" PARENT_SCOPE)
 endfunction()
 
+function(_pmm_dds_json5_flags_array out)
+    set(flags_arr)
+    foreach(flag IN LISTS ARGN)
+        string(GENEX_STRIP "${flag}" stripped)
+        if(NOT stripped STREQUAL flag)
+            # The option contained a generator expression. We aren't able to handle those yet...
+            # This will be especially useful with multiconf builds
+            _pmm_log(WARNING "'dds' toolchain will not include compiler option/definition containing a generator expression: ${flag}")
+            continue()
+        endif()
+        string(REPLACE "'" "\\'" flag "${flag}")
+        string(APPEND flags_arr "'${flag}', ")
+    endforeach()
+    set("${out}" "[${flags_arr}]" PARENT_SCOPE)
+endfunction()
+
 function(_pmm_dds_generate_toolchain out)
     get_filename_component(toolchain_dest "${PMM_DIR}/dds-toolchain.json5" ABSOLUTE)
 
@@ -127,6 +143,15 @@ function(_pmm_dds_generate_toolchain out)
         set(optimize false)
     endif()
 
+    # Pass in language flags for the current config
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" bt_upper)
+    set(c_bt_flags "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${bt_upper}}")
+    set(cxx_bt_flags "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${bt_upper}}")
+    separate_arguments(c_opts NATIVE_COMMAND "${c_bt_flags}")
+    separate_arguments(cxx_opts NATIVE_COMMAND "${c_bt_flags}")
+    _pmm_dds_json5_flags_array(c_flags_arr ${c_opts})
+    _pmm_dds_json5_flags_array(cxx_flags_arr ${cxx_opts})
+
     # Pass thru compile flags from the enclosing source directory
     get_directory_property(compile_flags COMPILE_OPTIONS)
 
@@ -136,18 +161,7 @@ function(_pmm_dds_generate_toolchain out)
     endforeach()
 
     set(flags_arr)
-    foreach(flag IN LISTS compile_flags)
-        string(GENEX_STRIP "${flag}" stripped)
-        if(NOT stripped STREQUAL flag)
-            # The option contained a generator expression. We aren't able to handle those yet...
-            # This will be especially useful with multiconf builds
-            _pmm_log(WARNING "'dds' toolchain will not include compiler option/definition containing a generator expression: ${flag}")
-            continue()
-        endif()
-        string(REPLACE "'" "\\'" flag "${flag}")
-        string(APPEND flags_arr "'${flag}', ")
-    endforeach()
-    set(flags_arr "[${flags_arr}]")
+    _pmm_dds_json5_flags_array(flags_arr ${compile_flags})
 
     string(CONFIGURE [[
         {
@@ -156,6 +170,8 @@ function(_pmm_dds_generate_toolchain out)
             @cxx_compiler_line@
             @cxx_version_line@
             flags: @flags_arr@,
+            c_flags: @c_flags_arr@,
+            cxx_flags: @cxx_flags_arr@,
             debug: @debug@,
             optimize: @optimize@,
         }
