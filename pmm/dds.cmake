@@ -130,6 +130,9 @@ function(_pmm_dds_generate_toolchain out)
     endif()
 
     set(rt_option "${CMAKE_MSVC_RUNTIME_LIBRARY}")
+    if(NOT rt_option)
+        set(rt_option "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    endif()
 
     # Enable debug info:
     if(CMAKE_BUILD_TYPE MATCHES "^(Debug|RelWithDebInfo|)$")
