@@ -1,13 +1,11 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 project(DDSTest VERSION 0.1.0)
 
 include(${PMM_INCLUDE})
 
-if(MSVC)
-    add_compile_options(/FS)
-endif()
 set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>DLL)
 pmm(CMakeCM ROLLING
     DDS CATALOG test-catalog.jsonc
         DEP_FILES deps.jsonc

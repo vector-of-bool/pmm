@@ -1,5 +1,5 @@
 _pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.4")
-_pmm_set_if_undef(PMM_DDS_URL_BASE "https://github.com/vector-of-bool/dds/releases/download/${PMM_DDS_VERSION}")
+_pmm_set_if_undef(PMM_DDS_URL_BASE "dds.pizza/dl/develop")
 
 function(_pmm_get_dds_exe out)
     if(DEFINED PMM_DDS_EXECUTABLE)
@@ -125,15 +125,19 @@ function(_pmm_dds_generate_toolchain out)
     # work.
     if(CMAKE_CONFIGURATION_TYPES)
         _pmm_log(WARNING "Using pmm+dds with multi-conf builds is not yet fully supported.")
-        set(debug true)
+        set(gen_debug TRUE)
         set(optimize true)
     endif()
 
+    set(rt_option "${CMAKE_MSVC_RUNTIME_LIBRARY}")
+
     # Enable debug info:
     if(CMAKE_BUILD_TYPE MATCHES "^(Debug|RelWithDebInfo|)$")
-        set(debug true)
+        set(gen_debug TRUE)
+        string(REPLACE "$<CONFIG:Debug>" 1 rt_option "${rt_option}")
     else()
-        set(debug false)
+        set(gen_debug TRUE)
+        string(REPLACE "$<CONFIG:Debug>" 0 rt_option "${rt_option}")
     endif()
 
     # Enable optimizations:
@@ -143,25 +147,51 @@ function(_pmm_dds_generate_toolchain out)
         set(optimize false)
     endif()
 
+    # Determine the runtime options
+    string(REPLACE "$<1:Debug>" Debug rt_option "${rt_option}")
+    string(REPLACE "$<0:Debug>" "" rt_option "${rt_option}")
+    set(rt_obj "{}")
+    if(MSVC)
+        set(rt_debug false)
+        if(rt_option MATCHES "^MultiThreadedDebug")
+            set(rt_debug true)
+        endif()
+        set(rt_static true)
+        if(rt_option MATCHES "DLL$")
+            set(rt_static false)
+        endif()
+        set(rt_obj "{debug: ${rt_debug}, static: ${rt_static}}")
+    endif()
+
     # Pass in language flags for the current config
     string(TOUPPER "${CMAKE_BUILD_TYPE}" bt_upper)
     set(c_bt_flags "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${bt_upper}}")
     set(cxx_bt_flags "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${bt_upper}}")
     separate_arguments(c_opts NATIVE_COMMAND "${c_bt_flags}")
-    separate_arguments(cxx_opts NATIVE_COMMAND "${c_bt_flags}")
+    separate_arguments(cxx_opts NATIVE_COMMAND "${cxx_bt_flags}")
     _pmm_dds_json5_flags_array(c_flags_arr ${c_opts})
     _pmm_dds_json5_flags_array(cxx_flags_arr ${cxx_opts})
 
-    # Pass thru compile flags from the enclosing source directory
+    # Pass thru compile flags and definitions from the enclosing source directory
     get_directory_property(compile_flags COMPILE_OPTIONS)
-
     get_directory_property(defs COMPILE_DEFINITIONS)
     foreach(def IN LISTS defs)
         list(APPEND compile_flags "-D${def}")
     endforeach()
-
-    set(flags_arr)
     _pmm_dds_json5_flags_array(flags_arr ${compile_flags})
+
+    if(NOT gen_debug)
+        set(debug_str "none")
+    elseif(MSVC AND ("/Zi" IN_LIST cxx_opts
+                     OR "/ZI" IN_LIST cxx_opts))
+        # Set flasg for doing split debug info
+        set(debug_str "split")
+    elseif("/Z7" IN_LIST cxx_opts)
+        # Don't pass an additional /Z7
+        set(debug_str "none")
+    else()
+        set(debug_str "embedded")
+    endif()
 
     string(CONFIGURE [[
         {
@@ -172,8 +202,9 @@ function(_pmm_dds_generate_toolchain out)
             flags: @flags_arr@,
             c_flags: @c_flags_arr@,
             cxx_flags: @cxx_flags_arr@,
-            debug: @debug@,
+            debug: '@debug_str@',
             optimize: @optimize@,
+            runtime: @rt_obj@,
         }
     ]] toolchain_content @ONLY)
     file(WRITE "${toolchain_dest}" "${toolchain_content}")
