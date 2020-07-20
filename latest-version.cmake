@@ -1,0 +1,1 @@
+set(PMM_LATEST_VERSION 1.8.1)
