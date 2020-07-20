@@ -54,21 +54,17 @@ function(_pmm_download url dest)
     endif()
 endfunction()
 
-foreach(fname IN ITEMS
-        util.cmake
-        python.cmake
-        conan.cmake
-        vcpkg.cmake
-        cmcm.cmake
-        main.cmake
-        dds.cmake
-        )
-    get_filename_component(_dest "${PMM_DIR}/${fname}" ABSOLUTE)
-    if(NOT EXISTS "${_dest}" OR PMM_ALWAYS_DOWNLOAD)
-        _pmm_download("${PMM_URL}/${fname}" "${_dest}")
-    endif()
+macro(_pmm_check_and_include_file filename)
+    get_filename_component(_dest "${PMM_DIR}/${filename}" ABSOLUTE)
+    if (NOT EXISTS "${_dest}" OR PMM_ALWAYS_DOWNLOAD)
+        _pmm_download("${PMM_URL}/${filename}" "${_dest}")
+    endif ()
     include("${_dest}")
-endforeach()
+endmacro()
+
+# Download the required modules
+_pmm_check_and_include_file(util.cmake)
+_pmm_check_and_include_file(main.cmake)
 
 # Do the update check.
 set(_latest_info_url "${PMM_URL_BASE}/latest-info.cmake")
