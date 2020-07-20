@@ -5,6 +5,7 @@ _pmm_set_if_undef(PMM_CONAN_PIP_ALWAYS_INSTALL    FALSE)
 _pmm_set_if_undef(PMM_CONAN_IGNORE_EXTERNAL_CONAN FALSE)
 
 set(PMM_CONAN_CPPSTD_DEPRECATE_VERSION 1.15.0 CACHE INTERNAL "Conan version to switch cppstd to compiler.cppstd")
+option(PMM_CMAKE_MULTI "Use the cmake_multi generator for Conan" ON)
 
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
@@ -611,8 +612,8 @@ macro(_pmm_conan_install)
         set(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake")
         _pmm_log("We are being built by Conan, so we won't run the install step.")
         _pmm_log("Assuming ${__conan_inc} is present.")
-    else()
-        if (CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE AND NOT ARGUMENTS_BUILD_TYPE)
+    else ()
+        if (CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE AND NOT ARGUMENTS_BUILD_TYPE AND PMM_CMAKE_MULTI)
             get_filename_component(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo_multi.cmake" ABSOLUTE)
             _pmm_log(WARNING "Using cmake-multi generator, this generator is experimental")
             _pmm_conan_run_install("Debug"   "cmake_multi")
