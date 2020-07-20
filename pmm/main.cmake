@@ -1,34 +1,34 @@
 cmake_minimum_required(VERSION 3.8)
 
-if(NOT "$ENV{HOME}" STREQUAL "")
+if (NOT "$ENV{HOME}" STREQUAL "")
     set(_PMM_USER_HOME "$ENV{HOME}")
-else()
+else ()
     set(_PMM_USER_HOME "$ENV{PROFILE}")
-endif()
+endif ()
 
-if(WIN32)
+if (WIN32)
     set(_PMM_USER_DATA_DIR "$ENV{LocalAppData}/pmm/${PMM_VERSION}")
-elseif("$ENV{XDG_DATA_HOME}")
+elseif ("$ENV{XDG_DATA_HOME}")
     set(_PMM_USER_DATA_DIR "$ENV{XDG_DATA_HOME}/pmm/${PMM_VERSION}")
-else()
+else ()
     set(_PMM_USER_DATA_DIR "${_PMM_USER_HOME}/.local/share/pmm/${PMM_VERSION}")
-endif()
+endif ()
 
 # The main function.
 function(_pmm_project_fn)
     _pmm_parse_args(
-        . DEBUG VERBOSE
-        + CONAN VCPKG CMakeCM DDS
-        )
+            . DEBUG VERBOSE
+            + CONAN VCPKG CMakeCM DDS
+    )
 
     _pmm_generate_cli_scripts(FALSE)
 
     if(ARG_DEBUG)
         set(PMM_DEBUG TRUE)
-    endif()
-    if(ARG_VERBOSE)
+    endif ()
+    if (ARG_VERBOSE)
         set(PMM_VERBOSE TRUE)
-    endif()
+    endif ()
 
     if (DEFINED ARG_CONAN OR "CONAN" IN_LIST ARGV)
         _pmm_check_and_include_file(python.cmake)
@@ -44,32 +44,27 @@ function(_pmm_project_fn)
         _pmm_check_and_include_file(cmcm.cmake)
         _pmm_cmcm(${ARG_CMakeCM})
         _pmm_lift(CMAKE_MODULE_PATH)
-    endif()
-    if(DEFINED ARG_DDS OR "DDS" IN_LIST ARGV)
+    endif ()
+    if (DEFINED ARG_DDS OR "DDS" IN_LIST ARGV)
         _pmm_check_and_include_file(dds.cmake)
         _pmm_dds(${ARG_DDS})
-    endif()
+    endif ()
     _pmm_lift(_PMM_INCLUDE)
 endfunction()
 
 macro(pmm)
     unset(_PMM_INCLUDE)
     _pmm_project_fn(${ARGV})
-    foreach(inc IN LISTS _PMM_INCLUDE)
+    foreach (inc IN LISTS _PMM_INCLUDE)
         include(${inc})
-    endforeach()
+    endforeach ()
 endmacro()
 
 function(_pmm_script_main)
     _pmm_parse_script_args(
             -nocheck
-            . /Conan /Help /GenerateShellScript
+            . /Conan /Help
     )
-    if (ARG_/GenerateShellScript)
-        _pmm_generate_cli_scripts(TRUE)
-        _pmm_log("Generated pmm-cli.sh and pmm-cli.bat")
-        return()
-    endif ()
 
     if (ARG_/Help)
         show_cli_help()
@@ -180,12 +175,5 @@ Available options:
         `<ref>` may be a partial `user/channel` reference. In this case the full
         ref will be obtained using the project in the current directory.
 ]===])
-        return()
-    endif()
-
-    if(ARG_/Conan)
-        _pmm_script_main_conan(${ARG_UNPARSED_ARGUMENTS})
-    else()
-        message(FATAL_ERROR "PMM did not recognise the given argument list")
-    endif()
+    return()
 endfunction()

@@ -87,7 +87,6 @@ _pmm_changes(1.4.3
 message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
 message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
 
-
 if (NOT DEFINED _PMM_BOOTSTRAP_VERSION OR _PMM_BOOTSTRAP_VERSION LESS 2)
     message(STATUS "[pmm] NOTE: pmm.cmake has changed! Please download a new pmm.cmake from the PMM repository.")
 endif ()
