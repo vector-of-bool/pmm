@@ -180,7 +180,7 @@ function(_pmm_vcpkg)
                 --triplet "${ARG_TRIPLET}"
                 ${ARG_REQUIRES}
             )
-        _pmm_exec(${cmd})
+        _pmm_exec(${cmd} NO_EAT_OUTPUT)
         if(_PMM_RC)
             message(FATAL_ERROR "Failed to install requirements with vcpkg [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         else()
