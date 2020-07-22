@@ -88,6 +88,11 @@ Available options:
         Print the path to the Conan executable with the given <cookie>
         prepended to the path on the same line.
 
+    /Clean
+        Run `conan remove * -fsb`.
+        
+        Removes temporary source and build folders in the local conan cache.
+
     /Version
         Print the Conan version
 
