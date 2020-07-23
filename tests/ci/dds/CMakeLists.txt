@@ -12,10 +12,12 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>DLL)
 pmm(CMakeCM ROLLING
     DDS CATALOG test-catalog.jsonc
         DEP_FILES deps.jsonc
+        IMPORT spdlog
     )
 
-include(libman)
-import_packages(spdlog fmt)
+# Call it a second time, this will *append* the fmt+1.0.0 to our requirements, not
+# replace the original one from deps.jsonc
+pmm(DDS DEPENDS fmt+1.0.0 IMPORT AUTO)
 
 if(NOT EXISTS "${PROJECT_BINARY_DIR}/INDEX.lmi")
     message(FATAL_ERROR "No INDEX.lmi was generated")

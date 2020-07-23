@@ -1,6 +1,18 @@
 _pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.4")
 _pmm_set_if_undef(PMM_DDS_URL_BASE "dds.pizza/dl/develop")
 
+define_property(GLOBAL PROPERTY DDS_DEPENDS
+    BRIEF_DOCS "Dependencies for dds"
+    FULL_DOCS "The accumulated list of dependencies that have been requested via pmm(DDS) with the DEPENDS argument"
+    )
+define_property(GLOBAL PROPERTY DDS_DEP_FILES
+    BRIEF_DOCS "Dependency files for dds"
+    FULL_DOCS "The accumulated list of dependency JSON5 files that have been requested via pmm(DDS) with the DEP_FILES argument"
+    )
+
+set_property(GLOBAL PROPERTY DDS_DEPENDS "")
+set_property(GLOBAL PROPERTY DDS_DEP_FILES "")
+
 function(_pmm_get_dds_exe out)
     if(DEFINED PMM_DDS_EXECUTABLE)
         _pmm_log("Using user-specified DDS executable: ${PMM_DDS_EXECUTABLE}")
@@ -9,7 +21,7 @@ function(_pmm_get_dds_exe out)
     endif()
     get_cmake_property(dds_exe _PMM_DDS_EXE)
     if(dds_exe)
-        set("${out}" "${PMM_DDS_EXECUTABLE}" PARENT_SCOPE)
+        set("${out}" "${dds_exe}" PARENT_SCOPE)
         return()
     endif()
     set(sysname "${CMAKE_HOST_SYSTEM_NAME}")
@@ -228,14 +240,24 @@ function(_pmm_dds)
     _pmm_parse_args(
         -hardcheck
         - TOOLCHAIN CATALOG
-        + DEP_FILES DEPENDS
+        + DEP_FILES DEPENDS IMPORT
         )
 
     _pmm_get_dds_exe(dds_exe)
 
+    # The user may call pmm(DDS) multiple times, in which case we append to the
+    # dependencies as we import them, rather than replacing the libman index
+    # with the new set of dependencies.
+    set_property(GLOBAL APPEND PROPERTY DDS_DEPENDS ${ARG_DEPENDS})
+    set_property(GLOBAL APPEND PROPERTY DDS_DEP_FILES ${ARG_DEP_FILES})
+
+    # Get the total accumulated set of dependencies/dep-files
+    get_cmake_property(acc_depends DDS_DEPENDS)
+    get_cmake_property(acc_dep_files DDS_DEP_FILES)
+
     # Build the command-line arguments to use with build-deps
-    set(bdeps_args ${ARG_DEPENDS})
-    foreach(fname IN LISTS ARG_DEP_FILES)
+    set(bdeps_args ${acc_depends})
+    foreach(fname IN LISTS acc_dep_files)
         get_filename_component(deps_fpath "${fname}" ABSOLUTE)
         list(APPEND bdeps_args "--deps=${deps_fpath}")
     endforeach()
@@ -268,5 +290,30 @@ function(_pmm_dds)
         )
     if(_PMM_RC)
         message(FATAL_ERROR "DDS failed to build our dependencies [${_PMM_RC}]")
+    endif()
+
+    if(IMPORT IN_LIST ARGV)
+        if(NOT COMMAND import_packages)
+            include(libman OPTIONAL RESULT_VARIABLE did_import)
+            if(NOT did_import)
+                message(FATAL_ERROR "pmm(DDS IMPORT): No 'import_packages' command is defined, and no 'libman' module is available")
+            endif()
+        endif()
+        if(ARG_IMPORT STREQUAL "AUTO")
+            if(ARG_DEP_FILES)
+                message(WARNING "DDS IMPORT AUTO does not work properly with DEP_FILES. Packages from the given dep-files will not be imported.")
+            endif()
+            foreach(dep IN LISTS ARG_DEPENDS)
+                if(NOT dep MATCHES "^(.+)[@=\\+\\^`]")
+                    message(SEND_ERROR "Cannot auto-import dependency statement: ${dep}")
+                    continue()
+                endif()
+                import_packages("${CMAKE_MATCH_1}")
+            endforeach()
+        else()
+            foreach(import IN LISTS ARG_IMPORT)
+                import_packages("${import}")
+            endforeach()
+        endif()
     endif()
 endfunction()
