@@ -196,6 +196,13 @@ function(_pmm_dds_generate_toolchain out)
         set(debug_str "embedded")
     endif()
 
+    # Detect a compiler launcher (i.e. `ccache`)
+    get_directory_property(launcher CXX_COMPILER_LAUNCHER)
+    if(NOT launcher)
+        set(launcher "${CMAKE_CXX_COMPILER_LAUNCHER}")
+    endif()
+    _pmm_dds_json5_flags_array(launcher ${launcher})
+
     string(CONFIGURE [[
         {
             compiler_id: '@comp_id@',
@@ -208,11 +215,12 @@ function(_pmm_dds_generate_toolchain out)
             debug: '@debug_str@',
             optimize: @optimize@,
             runtime: @rt_obj@,
+            compiler_launcher: @launcher@,
         }
     ]] toolchain_content @ONLY)
     file(WRITE "${toolchain_dest}" "${toolchain_content}")
     set("${out}" "${toolchain_dest}" PARENT_SCOPE)
-    _pmm_log(DEBUG "Generated dds toolchain at ${toolchain_dest}")
+    _pmm_log(DEBUG "Generated dds toolchain at ${toolchain_dest} with content: ${toolchain_content}")
 endfunction()
 
 function(_pmm_dds)
