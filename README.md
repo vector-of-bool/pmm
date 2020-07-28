@@ -112,7 +112,7 @@ pmm(
         # Ensure the given packages are installed using vcpkg
         [REQUIRES [req [...]]]
         # Copy custom ports to the vcpkg ports directory
-        [PORTS [req [...]]]
+        [PORTS [dirpath [...]]]
     ]
     # Use CMakeCM
     [CMakeCM
