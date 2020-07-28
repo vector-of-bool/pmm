@@ -230,21 +230,16 @@ about using `dds`.
 
 # Helper Commands
 
-Executing PMM in script mode provides some additional helper commands to work
-with your project.
-
-> NOTE: This will create a local copy of the PMM code in a `_pmm` directory. It
-> is safe to delete or `.gitignore` this directory.
+The `pmm.cmake` script can be run with `-P` to access a set of utility subcommands and options. See `cmake -P pmm.cmake /Help` for options. Additionally, after PMM has run for the first time, it will generate a sh and bat script that can be used to access the same set of options without needing `cmake -P pmm.cmake`:
 
 Get help with the `/Help` option:
 
 ```sh
-> cmake -P pmm.cmake /Help
+> pmm-cli.sh /Help
 ```
 
-As an example, you can build, test, and upload your package all in one go with
-this command:
+As an example, you can rebuild a Conan package with this command:
 
 ```sh
-> cmake -P pmm.cmake /Conan /Create /Upload /Ref my-user/unstable /Remote some-remote
+> pmm-cli.sh /Conan /Rebuild <package name>  /BuildType <Release or Debug>
 ```
