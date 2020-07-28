@@ -230,7 +230,7 @@ about using `dds`.
 
 # Helper Commands
 
-After PMM has run for the first time, it will generate a sh and bat script that can be used to maintain your PMM installation
+The `pmm.cmake` script can be run with `-P` to access a set of utility subcommands and options. See `cmake -P pmm.cmake /Help` for options. Additionally, after PMM has run for the first time, it will generate a sh and bat script that can be used to access the same set of options without needing `cmake -P pmm.cmake`:
 
 Get help with the `/Help` option:
 
