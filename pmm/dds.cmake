@@ -1,5 +1,5 @@
-_pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.4")
-_pmm_set_if_undef(PMM_DDS_URL_BASE "dds.pizza/dl/develop")
+_pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.5")
+_pmm_set_if_undef(PMM_DDS_URL_BASE "https://github.com/vector-of-bool/dds/releases/download/${PMM_DDS_VERSION}")
 
 define_property(GLOBAL PROPERTY DDS_DEPENDS
     BRIEF_DOCS "Dependencies for dds"
@@ -151,7 +151,7 @@ function(_pmm_dds_generate_toolchain out)
         set(gen_debug TRUE)
         string(REPLACE "$<CONFIG:Debug>" 1 rt_option "${rt_option}")
     else()
-        set(gen_debug TRUE)
+        set(gen_debug FALSE)
         string(REPLACE "$<CONFIG:Debug>" 0 rt_option "${rt_option}")
     endif()
 
@@ -199,7 +199,7 @@ function(_pmm_dds_generate_toolchain out)
         set(debug_str "none")
     elseif(MSVC AND ("/Zi" IN_LIST cxx_opts
                      OR "/ZI" IN_LIST cxx_opts))
-        # Set flasg for doing split debug info
+        # Set flags for doing split debug info
         set(debug_str "split")
     elseif("/Z7" IN_LIST cxx_opts)
         # Don't pass an additional /Z7
