@@ -151,7 +151,7 @@ function(_pmm_dds_generate_toolchain out)
         set(gen_debug TRUE)
         string(REPLACE "$<CONFIG:Debug>" 1 rt_option "${rt_option}")
     else()
-        set(gen_debug TRUE)
+        set(gen_debug FALSE)
         string(REPLACE "$<CONFIG:Debug>" 0 rt_option "${rt_option}")
     endif()
 
@@ -199,7 +199,7 @@ function(_pmm_dds_generate_toolchain out)
         set(debug_str "none")
     elseif(MSVC AND ("/Zi" IN_LIST cxx_opts
                      OR "/ZI" IN_LIST cxx_opts))
-        # Set flasg for doing split debug info
+        # Set flags for doing split debug info
         set(debug_str "split")
     elseif("/Z7" IN_LIST cxx_opts)
         # Don't pass an additional /Z7
