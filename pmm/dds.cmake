@@ -1,5 +1,5 @@
-_pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.4")
-_pmm_set_if_undef(PMM_DDS_URL_BASE "dds.pizza/dl/develop")
+_pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.5")
+_pmm_set_if_undef(PMM_DDS_URL_BASE "https://github.com/vector-of-bool/dds/releases/download/${PMM_DDS_VERSION}")
 
 define_property(GLOBAL PROPERTY DDS_DEPENDS
     BRIEF_DOCS "Dependencies for dds"
