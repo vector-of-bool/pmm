@@ -124,3 +124,27 @@ function(_pmm_write_if_different filepath content)
     endif()
     set(_PMM_DID_WRITE "${do_write}" PARENT_SCOPE)
 endfunction()
+
+
+function(_pmm_get_var_from_file filepath varname)
+    include(${filepath})
+    get_property(propt VARIABLE PROPERTY ${varname})
+    set(${varname} ${propt} PARENT_SCOPE)
+endfunction()
+
+
+function(_pmm_generate_cli_scripts force)
+    # The sh scipt
+    if (NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.sh" OR ${force})
+        file(WRITE "${_PMM_USER_DATA_DIR}/pmm-cli.sh" "#!/bin/sh\n${CMAKE_COMMAND} -P ${PMM_MODULE} \"$@\"")
+        # Fix to make the sh executable
+        file(COPY "${_PMM_USER_DATA_DIR}/pmm-cli.sh"
+             DESTINATION ${CMAKE_BINARY_DIR}
+             FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+        )
+    endif ()
+    # The bat scipt
+    if (NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.bat" OR ${force})
+        file(WRITE "${CMAKE_BINARY_DIR}/pmm-cli.bat" "@echo off\n\"${CMAKE_COMMAND}\" -P \"${PMM_MODULE}\" %*")
+    endif ()
+endfunction()

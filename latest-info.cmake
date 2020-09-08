@@ -89,10 +89,23 @@ if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
     _pmm_changes(1.4.3
         "Improve: Update to DDS alpha.4"
         )
+    _pmm_changes(1.5.0
+        "New: Support the 'cmake_multi' generator with Conan"
+        "New: /Conan /Clean to run 'conan remove -fsb *'"
+        "New: IMPORT argument to pmm(DDS) will automatically call import_packages() in some cases"
+        "New: Running pmm() will generate pmm-cli.bat and pmm-cli.sh shell scripts to manage PMM"
+        "New: pmm(VCPKG) supports a PORTS argument, to provide custom vcpkg port files."
+        "Improve: Update to DDS alpha.5"
+        "Improve: Automatically propagate the MSVC_RUNTIME_LIBRARY for dds dependency builds"
+        "Improve: CMAKE_CXX_COMPILER_LAUNCHER sets 'compiler_launcher' in the toolchain"
+        "         (Can be overridden with PMM_DDS_COMPILER_LAUNCHER)"
+        "Fix: Generated CMakeCM paths using bad path separators"
+        "Fix: Multiple calls to pmm(DDS) are allowed, and accumulate deps rather than overriding them"
+        )
     message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
     message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
 endif()
 
-if(NOT DEFINED _PMM_BOOTSTRAP_VERSION OR _PMM_BOOTSTRAP_VERSION LESS 2)
+if(NOT DEFINED _PMM_BOOTSTRAP_VERSION OR _PMM_BOOTSTRAP_VERSION LESS 3)
     message(STATUS "[pmm] NOTE: pmm.cmake has changed! Please download a new pmm.cmake from the PMM repository.")
 endif()

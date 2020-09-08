@@ -5,6 +5,7 @@ _pmm_set_if_undef(PMM_CONAN_PIP_ALWAYS_INSTALL    FALSE)
 _pmm_set_if_undef(PMM_CONAN_IGNORE_EXTERNAL_CONAN FALSE)
 
 set(PMM_CONAN_CPPSTD_DEPRECATE_VERSION 1.15.0 CACHE INTERNAL "Conan version to switch cppstd to compiler.cppstd")
+option(PMM_CMAKE_MULTI "Use the cmake_multi generator for Conan" ON)
 
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
@@ -458,16 +459,6 @@ function(_pmm_conan_get_settings out)
         message(FATAL_ERROR "Unable to detect compiler setting for Conan from CMake. (Unhandled compiler ID ${comp_id}).")
     endif()
 
-    if(NOT CMAKE_CONFIGURATION_TYPES)
-        set(bt "${CMAKE_BUILD_TYPE}")
-        if(NOT bt)
-            _pmm_log("WARNING: CMAKE_BUILD_TYPE was not set explicitly. We'll install your dependencies as 'Debug'")
-            set(bt Debug)
-        endif()
-        _pmm_log(DEBUG "Using build_type=${bt}")
-        list(APPEND ret build_type=${bt})
-    endif()
-
     # Todo: Cross compiling
     if(NOT ARG_SETTINGS MATCHES ";?arch=")
         if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -506,16 +497,8 @@ function(_pmm_conan_get_settings out)
 endfunction()
 
 
-function(_pmm_conan_install_1)
-    set(src "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(bin "${CMAKE_CURRENT_BINARY_DIR}")
-    # Install the thing
-    # Do the regular install logic
-    get_filename_component(conan_inc "${bin}/conanbuildinfo.cmake" ABSOLUTE)
-    get_filename_component(conan_timestamp_file "${bin}/conaninfo.txt" ABSOLUTE)
-    get_filename_component(libman_inc "${bin}/libman.cmake" ABSOLUTE)
-
-    get_filename_component(profile_file "${bin}/pmm-conan.profile" ABSOLUTE)
+function(_pmm_conan_create_profile ${_build_type})
+    get_filename_component(profile_file "${CMAKE_CURRENT_BINARY_DIR}/pmm-conan-${_build_type}.profile" ABSOLUTE)
     set(profile_lines "[settings]")
 
     # Get the settings for the profile
@@ -541,19 +524,32 @@ function(_pmm_conan_install_1)
     foreach(env IN LISTS ARG_ENV)
         list(APPEND profile_lines "${env}")
     endforeach()
+    # Add build type
+    list(APPEND profile_lines "build_type=${_build_type}")
 
     string(REPLACE ";" "\n" profile_content "${profile_lines}")
-    _pmm_write_if_different("${profile_file}" "${profile_content}")
-    set(profile_changed "${_PMM_DID_WRITE}")
+    _pmm_write_if_different("${_profile_file}" "${profile_content}")
+    set(profile_changed "${_PMM_DID_WRITE}" PARENT_SCOPE)
+    set(profile_file ${_profile_file} PARENT_SCOPE)
+
+endfunction()
+
+function(_pmm_conan_run_install _build_type _generator_name )
+    # Install the thing
+    # Do the regular install logic
+    get_filename_component(conan_timestamp_file "${CMAKE_CURRENT_BINARY_DIR}/conaninfo.txt" ABSOLUTE)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
+
+    _pmm_conan_create_profile(${_build_type})
 
     _pmm_set_if_undef(ARG_BUILD missing)
     set(conan_args --profile "${profile_file}")
-    list(APPEND conan_args --generator cmake --build ${ARG_BUILD})
+    list(APPEND conan_args --generator ${_generator_name} --build ${ARG_BUILD})
     set(conan_install_cmd
         "${CMAKE_COMMAND}" -E env CONAN_LIBMAN_FOR=cmake
-        "${PMM_CONAN_EXECUTABLE}" install "${src}" ${conan_args}
+        "${PMM_CONAN_EXECUTABLE}" install "${CMAKE_CURRENT_SOURCE_DIR}" ${conan_args}
         )
-    set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd.txt")
+    set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd_${_build_type}.txt")
     # Check if we need to re-run the conan install
     set(do_install FALSE)
     # Check if any "install inputs" are newer
@@ -590,17 +586,15 @@ function(_pmm_conan_install_1)
     else()
         _pmm_log("Installing Conan requirements from ${__conanfile}")
         _pmm_exec(${conan_install_cmd}
-            WORKING_DIRECTORY "${bin}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
             NO_EAT_OUTPUT
             )
         if(_PMM_RC)
-            message(SEND_ERROR "Conan install failed [${_PMM_RC}]:\n${_PMM_OUTPUT}")
+            message(FATAL_ERROR "Conan install failed [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         else()
             file(WRITE "${prev_cmd_file}" "${conan_install_cmd}")
         endif()
     endif()
-    set(__conan_inc "${conan_inc}" PARENT_SCOPE)
-    set(__libman_inc "${libman_inc}" PARENT_SCOPE)
 endfunction()
 
 
@@ -618,9 +612,25 @@ macro(_pmm_conan_install)
         set(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake")
         _pmm_log("We are being built by Conan, so we won't run the install step.")
         _pmm_log("Assuming ${__conan_inc} is present.")
-    else()
-        _pmm_conan_install_1()
+    else ()
+        if (CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE AND PMM_CMAKE_MULTI)
+            get_filename_component(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo_multi.cmake" ABSOLUTE)
+            _pmm_log(WARNING "Using cmake-multi generator, this generator is experimental")
+            _pmm_conan_run_install("Debug"   "cmake_multi")
+            _pmm_conan_run_install("Release" "cmake_multi")
+        else ()
+            if (NOT "${CMAKE_BUILD_TYPE}")
+                _pmm_log("WARNING: CMAKE_BUILD_TYPE was not set explicitly. We'll install your dependencies as 'Debug'")
+                set(CMAKE_BUILD_TYPE Debug)
+            endif ()
+            get_filename_component(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake" ABSOLUTE)
+            _pmm_conan_run_install("${CMAKE_BUILD_TYPE}" "cmake")
+        endif ()
     endif()
+
+    get_filename_component(libman_inc "${CMAKE_CURRENT_BINARY_DIR}/libman.cmake" ABSOLUTE)
+    set(__libman_inc "${libman_inc}")
+
     _pmm_log(VERBOSE "Including Conan generated file ${__conan_inc}")
     include("${__conan_inc}" OPTIONAL RESULT_VARIABLE __was_included)
     if(NOT __was_included)
@@ -853,6 +863,7 @@ function(_pmm_script_main_conan)
             /Upload
             /All
             /NoOverwrite
+            /Clean
             /Export
             /Install
             /Upgrade
@@ -967,6 +978,11 @@ function(_pmm_script_main_conan)
         if(retc)
             message(FATAL_ERROR "Export failed [${retc}]")
         endif()
+    endif()
+
+    if(ARG_/Clean)
+        _pmm_ensure_conan()
+        execute_process(COMMAND "${PMM_CONAN_EXECUTABLE}" remove * -fsb)
     endif()
 
     if(ARG_/Upload)

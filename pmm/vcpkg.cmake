@@ -79,6 +79,8 @@ function(_pmm_ensure_vcpkg dir rev)
     file(REMOVE_RECURSE "${dir}")
     file(RENAME "${vcpkg_root}" "${dir}")
     _pmm_log("vcpkg successfully bootstrapped to ${dir}")
+    # Fix for "Could not detect vcpkg-root."
+    execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
 endfunction()
 
 function(_pmm_vcpkg_default_triplet out)
@@ -145,21 +147,46 @@ function(_pmm_vcpkg_default_triplet out)
     set(${out} "${arch}-${platform}" PARENT_SCOPE)
 endfunction()
 
+function(_pmm_vcpkg_copy_custom_ports ports_list)
+    foreach (port IN LISTS ports_list)
+        get_filename_component(port_name ${port} NAME)
+        if (NOT EXISTS "${port}/portfile.cmake")
+            message(FATAL_ERROR "Failed find portfile in ${port}!")
+        endif()
+        set(port_location "${vcpkg_inst_dir}/ports/${port_name}")
+        if(EXISTS "${port_location}" AND NOT EXISTS "${port_location}/CUSTOM_PORT_FROM_PMM.txt")
+          message(WARNING "Portfile already included by default!")
+        elseif(NOT EXISTS "${port_location}/CUSTOM_PORT_FROM_PMM.txt")
+          file(MAKE_DIRECTORY "${port_location}")
+          file(WRITE "${port_location}/CUSTOM_PORT_FROM_PMM.txt" "This is a custom port copied by PMM")
+        endif()
+        file(GLOB port_files "${port}/*")
+        foreach (port_file IN LISTS port_files)
+          get_filename_component(port_file_name ${port_file} NAME)
+          set(port_file_location "${port_location}/${port_file_name}")
+          file(TIMESTAMP ${port_file_location} port_file_location_ts)
+          file(TIMESTAMP ${port_file} port_file_ts)
+          _pmm_log(DEBUG "Timestamp: ${port_file_location_ts} for ${port_file_location}")
+          _pmm_log(DEBUG "Timestamp: ${port_file_ts} for ${port_file}")
+          if(NOT "${port_file_ts}" STREQUAL "${port_file_location_ts}")
+              _pmm_log(VERBOSE "${port_name}: Copying ${port_file} to ${port_file_location}")
+              file(COPY "${port_file}" DESTINATION "${vcpkg_inst_dir}/ports/${port_name}/")
+          else ()
+              _pmm_log(VERBOSE "${port_name}: ${port_file_name} is up to date")
+          endif ()
+        endforeach ()
+    endforeach ()
+endfunction()
+
 function(_pmm_vcpkg)
     _pmm_parse_args(
         - REVISION TRIPLET
-        + REQUIRES
+        + REQUIRES PORTS
         )
 
-    if(NOT DEFINED ARG_REVISION)
-        # This is just a random revision people can plop down in for the REVISION
-        # argument. There isn't anything significant about this particular
-        # revision, other than being the revision of the `master` branch at the
-        # time I typed this comment. If you are modifying PMM, feel free to
-        # change this revision number to whatever is the latest in the vcpkg
-        # repository. (https://github.com/Microsoft/vcpkg)
-        message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION cf7e2f3906f78dcb89f320a642428b54c00e4e0b`")
-    endif()
+    if (NOT DEFINED ARG_REVISION)
+        message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION 2020.06`")
+    endif ()
     if(NOT DEFINED ARG_TRIPLET)
         _pmm_vcpkg_default_triplet(ARG_TRIPLET)
     endif()
@@ -171,16 +198,20 @@ function(_pmm_vcpkg)
     if(NOT prev STREQUAL PMM_VCPKG_EXECUTABLE)
         _pmm_log("Using vcpkg executable: ${PMM_VCPKG_EXECUTABLE}")
     endif()
+    if (DEFINED ARG_PORTS)
+        _pmm_vcpkg_copy_custom_ports("${ARG_PORTS}")
+    endif ()
     if(ARG_REQUIRES)
         _pmm_log("Installing requirements with vcpkg")
         set(cmd ${CMAKE_COMMAND} -E env
+                VCPKG_ROOT=${vcpkg_inst_dir}
                 CC=${CMAKE_C_COMPILER}
                 CXX=${CMAKE_CXX_COMPILER}
             "${PMM_VCPKG_EXECUTABLE}" install
                 --triplet "${ARG_TRIPLET}"
                 ${ARG_REQUIRES}
             )
-        _pmm_exec(${cmd})
+        _pmm_exec(${cmd} NO_EAT_OUTPUT)
         if(_PMM_RC)
             message(FATAL_ERROR "Failed to install requirements with vcpkg [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         else()
