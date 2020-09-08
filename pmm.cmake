@@ -21,7 +21,7 @@
 ## SOFTWARE.
 
 # Bump this version to change what PMM version is downloaded
-set(PMM_VERSION_INIT 1.4.3)
+set(PMM_VERSION_INIT 1.5.0)
 
 # Helpful macro to set a variable if it isn't already set
 macro(_pmm_set_if_undef varname)
@@ -74,7 +74,7 @@ if(NOT EXISTS "${_PMM_ENTRY_FILE}" OR PMM_ALWAYS_DOWNLOAD)
 endif()
 
 # ^^^ DO NOT CHANGE THIS LINE vvv
-set(_PMM_BOOTSTRAP_VERSION 2)
+set(_PMM_BOOTSTRAP_VERSION 3)
 # ^^^ DO NOT CHANGE THIS LINE ^^^
 
 include("${_PMM_ENTRY_FILE}")
