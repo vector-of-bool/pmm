@@ -123,7 +123,8 @@ pmm(
     # Use dds
     [DDS
         # Specify a toolchain. Given as the --toolchain argument to `build-deps`.
-        # If not specified, one will be generated automatically.
+        # If not specified, one will be generated automatically based on the
+        # current CMake settings.
         [TOOLCHAIN <toolchain>]
         # Give a path to a catalog json5 file to import before doing dependency
         # resolution. If not provided, the user-local catalog will be used.
@@ -132,6 +133,10 @@ pmm(
         [DEP_FILES [filepath [...]]]
         # List of direct dependency strings.
         [DEPENDS [dep [...]]]
+        # Call 'import_packages()' on the caller's behalf. With 'AUTO', all
+        # packages named with 'DEPENDS' will be imported automatically.
+        # Packages from DEP_FILES will need to be named explicitly.
+        [IMPORT < AUTO | [pkg-name [...]] >]
     ]
 )
 ```
@@ -183,13 +188,14 @@ In `VCPKG` mode, PMM will download the vcpkg repository at the given
 `REVISION`, build the `vcpkg` tool, and manage the package installation in a
 use-local data directory.
 
-`REVISION` should be a git tree-ish (A revision number (preferred), branch,
-or tag) that you could `git checkout` from the vcpkg repository. PMM will
-download the specified commit from GitHub and build the `vcpkg` command line
-tool from source. **You will need `std::filesystem` or `std::experimental::filesystem` support from your
-compiler and standard library.**
+`REVISION` should be a git tree-ish (A revision number (preferred), branch, or
+tag) that you could `git checkout` from the vcpkg repository. PMM will download
+the specified commit from GitHub and build the `vcpkg` command line tool from
+source. **You will need `std::filesystem` or `std::experimental::filesystem`
+support from your compiler and standard library.**
 
-If you want to copy custom ports to the vcpkg ports folder, you can define `PORTS` with a list of folders to copy over.
+If you want to copy custom ports to the vcpkg ports folder, you can define
+`PORTS` with a list of folders to copy over.
 
 `REQUIRES` is a list of packages that you would like to install using the
 `vcpkg` command line tool.
@@ -226,6 +232,17 @@ dependencies. This will result in the generation of an `INDEX.lmi` file within
 the build directory that can be imported using the `libman` CMake module's
 `import_packages` function (currently available via CMakeCM).
 
+Calling `pmm(DDS)` multiple times is allowed: Each call will *append* to the
+set of installed dependencies rather than override it.
+
+The current compile flags, definitions, and include directories will be used to
+generate a toolchain file automatically if one is not provided.
+
+The value of `CMAKE_CXX_COMPILER_LAUNCHER` will be given as the compiler
+launcher in the generated toolchain file. This can be override with
+`PMM_DDS_COMPILER_LAUNCHER`, including setting an empty string `""` to disable
+it completely.
+
 **NOTE**: `dds` support is still very experimental, and `dds` itself is very
 new at the time of this writing. Refer to [the `dds`
 documentation](https://vector-of-bool.github.io/docs/dds/) for information
@@ -234,7 +251,11 @@ about using `dds`.
 
 # Helper Commands
 
-The `pmm.cmake` script can be run with `-P` to access a set of utility subcommands and options. See `cmake -P pmm.cmake /Help` for options. Additionally, after PMM has run for the first time, it will generate a sh and bat script that can be used to access the same set of options without needing `cmake -P pmm.cmake`:
+The `pmm.cmake` script can be run with `-P` to access a set of utility
+subcommands and options. See `cmake -P pmm.cmake /Help` for options.
+Additionally, after PMM has run for the first time, it will generate a `sh` and
+`bat` script that can be used to access the same set of options without needing
+`cmake -P pmm.cmake`:
 
 Get help with the `/Help` option:
 
@@ -245,5 +266,5 @@ Get help with the `/Help` option:
 As an example, you can rebuild a Conan package with this command:
 
 ```sh
-> pmm-cli.sh /Conan /Rebuild <package name>  /BuildType <Release or Debug>
+> pmm-cli.sh /Conan /Rebuild <package name> /BuildType <Release or Debug>
 ```
