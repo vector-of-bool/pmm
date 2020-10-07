@@ -497,8 +497,7 @@ function(_pmm_conan_get_settings out)
 endfunction()
 
 
-function(_pmm_conan_create_profile ${_build_type})
-    get_filename_component(profile_file "${CMAKE_CURRENT_BINARY_DIR}/pmm-conan-${_build_type}.profile" ABSOLUTE)
+function(_pmm_conan_create_profile _build_type)
     set(profile_lines "[settings]")
 
     # Get the settings for the profile
@@ -507,6 +506,7 @@ function(_pmm_conan_create_profile ${_build_type})
     foreach(setting IN LISTS ARG_SETTINGS)
         list(APPEND profile_lines "${setting}")
     endforeach()
+    list(APPEND profile_lines "build_type=${_build_type}")
 
     # Add the options to the profile
     list(APPEND profile_lines "" "[options]")
@@ -524,14 +524,12 @@ function(_pmm_conan_create_profile ${_build_type})
     foreach(env IN LISTS ARG_ENV)
         list(APPEND profile_lines "${env}")
     endforeach()
-    # Add build type
-    list(APPEND profile_lines "build_type=${_build_type}")
 
     string(REPLACE ";" "\n" profile_content "${profile_lines}")
+    get_filename_component(_profile_file "${CMAKE_CURRENT_BINARY_DIR}/pmm-conan-${_build_type}.profile" ABSOLUTE)
     _pmm_write_if_different("${_profile_file}" "${profile_content}")
     set(profile_changed "${_PMM_DID_WRITE}" PARENT_SCOPE)
     set(profile_file ${_profile_file} PARENT_SCOPE)
-
 endfunction()
 
 function(_pmm_conan_run_install _build_type _generator_name )
