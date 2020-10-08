@@ -1,14 +1,17 @@
 _pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.5")
 _pmm_set_if_undef(PMM_DDS_URL_BASE "https://github.com/vector-of-bool/dds/releases/download/${PMM_DDS_VERSION}")
 
-define_property(GLOBAL PROPERTY DDS_DEPENDS
-    BRIEF_DOCS "Dependencies for dds"
-    FULL_DOCS "The accumulated list of dependencies that have been requested via pmm(DDS) with the DEPENDS argument"
-    )
-define_property(GLOBAL PROPERTY DDS_DEP_FILES
-    BRIEF_DOCS "Dependency files for dds"
-    FULL_DOCS "The accumulated list of dependency JSON5 files that have been requested via pmm(DDS) with the DEP_FILES argument"
-    )
+if(NOT CMAKE_SCRIPT_MODE_FILE)
+    # Script-mode doesn't like calling define_property()
+    define_property(GLOBAL PROPERTY DDS_DEPENDS
+        BRIEF_DOCS "Dependencies for dds"
+        FULL_DOCS "The accumulated list of dependencies that have been requested via pmm(DDS) with the DEPENDS argument"
+        )
+    define_property(GLOBAL PROPERTY DDS_DEP_FILES
+        BRIEF_DOCS "Dependency files for dds"
+        FULL_DOCS "The accumulated list of dependency JSON5 files that have been requested via pmm(DDS) with the DEP_FILES argument"
+        )
+endif()
 
 set_property(GLOBAL PROPERTY DDS_DEPENDS "")
 set_property(GLOBAL PROPERTY DDS_DEP_FILES "")
