@@ -47,7 +47,6 @@ jobs:
           curl -Ls https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip -o ninja-mac.zip
           unzip ninja-mac.zip
           sudo cp -v ninja /usr/local/bin/
-          brew install gcc@8
         displayName: Prepare System
       - script: env CXX=g++-8 CC=gcc-8 pwsh ./ci.ps1
         displayName: Run tests
