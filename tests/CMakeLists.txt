@@ -4,7 +4,6 @@ set(DOCKER_TESTS
     u18-vcpkg
     u16
     u14
-    # u12
     )
 
 get_filename_component(DOCKER_TEST_SCRIPT RunDockerTest.cmake ABSOLUTE)
