@@ -3,7 +3,7 @@ import conans
 
 class PMM(conans.ConanFile):
     name = 'pmm'
-    version = '1.5.0'
+    version = '1.5.1'
     settings = None
     exports_sources = '*'
     generators = 'cmake'

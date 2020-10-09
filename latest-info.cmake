@@ -102,6 +102,10 @@ if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION AND NOT PMM_IGNORE_NEW_VERSION)
         "Fix: Generated CMakeCM paths using bad path separators"
         "Fix: Multiple calls to pmm(DDS) are allowed, and accumulate deps rather than overriding them"
         )
+    _pmm_changes(1.5.1
+        "Fix: Unable to run in script mode due to define_property() calls"
+        "Fix: Generated Conan profiles without respecting the CMAKE_BUILD_TYPE"
+        )
     message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
     message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
 endif()
