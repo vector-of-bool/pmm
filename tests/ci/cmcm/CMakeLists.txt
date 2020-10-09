@@ -6,6 +6,6 @@ pmm(CMakeCM ROLLING)
 
 include(CMakeRC)
 
-cmrc_add_resource_library(dummy-rc CMakeLists.txt)
+cmrc_add_resource_library(dummy_rc CMakeLists.txt)
 add_executable(dummy-program main.cpp)
-target_link_libraries(dummy-program PRIVATE dummy-rc)
+target_link_libraries(dummy-program PRIVATE dummy_rc)

@@ -36,7 +36,7 @@ jobs:
           sudo sh /tmp/cmake.sh --exclude-subdir --prefix=/usr/local
           sudo apt-get install -y python3-venv ninja-build
         displayName: Prepare System
-      - script: pwsh ./ci.ps1 -RunDockerTests -NoCITestDir
+      - script: pwsh ./ci.ps1 -RunDockerTests
         displayName: Run tests
 
   - job: macOS
@@ -48,5 +48,5 @@ jobs:
           unzip ninja-mac.zip
           sudo cp -v ninja /usr/local/bin/
         displayName: Prepare System
-      - script: pwsh ./ci.ps1
+      - script: env CXX=g++-8 CC=gcc-8 pwsh ./ci.ps1
         displayName: Run tests
