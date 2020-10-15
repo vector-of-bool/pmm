@@ -1,6 +1,11 @@
-set(PMM_CONAN_MIN_VERSION 1.8.0     CACHE INTERNAL "Minimum Conan version we support")
-set(PMM_CONAN_MAX_VERSION 1.99999.0 CACHE INTERNAL "Maximum Conan version we support")
+_pmm_set_if_undef(PMM_CONAN_MIN_VERSION           1.8.0)
+_pmm_set_if_undef(PMM_CONAN_MAX_VERSION           1.99999.0)
+_pmm_set_if_undef(PMM_CONAN_PIP_INSTALL_ARGS      "conan<${PMM_CONAN_MAX_VERSION}")
+_pmm_set_if_undef(PMM_CONAN_PIP_ALWAYS_INSTALL    FALSE)
+_pmm_set_if_undef(PMM_CONAN_IGNORE_EXTERNAL_CONAN FALSE)
 
+set(PMM_CONAN_CPPSTD_DEPRECATE_VERSION 1.15.0 CACHE INTERNAL "Conan version to switch cppstd to compiler.cppstd")
+option(PMM_CMAKE_MULTI "Use the cmake_multi generator for Conan" ON)
 
 # Get Conan in a new virtualenv using the Python interpreter specified by the
 # package of the `python_pkg` arg (Python3 or Python2)
@@ -58,7 +63,7 @@ function(_pmm_get_conan_venv py_name py_exe)
 
     # Finally, install Conan inside the virtualenv.
     _pmm_log("${msg} - Install Conan")
-    _pmm_exec("${venv_py}" -m pip install -q conan<${PMM_CONAN_MAX_VERSION})
+    _pmm_exec("${venv_py}" -m pip install -Uq ${PMM_CONAN_PIP_INSTALL_ARGS})
     if(_PMM_RC)
         _pmm_log(WARNING "Failed to install Conan in virtualenv [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         _pmm_log("${msg} - Fail: Could not install Conan in virtualenv")
@@ -80,25 +85,83 @@ function(_pmm_get_conan_venv py_name py_exe)
     endif()
 endfunction()
 
-macro(_pmm_conan_vars)
-    get_filename_component(_PMM_CONAN_VENV_DIR "${_PMM_USER_DATA_DIR}/_conan_venv" ABSOLUTE)
-endmacro()
+function(_pmm_conan_vars)
+    string(MD5 inst_cmd_hash "${PMM_CONAN_PIP_INSTALL_ARGS}")
+    string(SUBSTRING "${inst_cmd_hash}" 0 6 inst_cmd_hash)
+    get_filename_component(_PMM_CONAN_VENV_DIR "${_PMM_USER_DATA_DIR}/conan/venvs/${inst_cmd_hash}" ABSOLUTE)
+    _pmm_lift(_PMM_CONAN_VENV_DIR)
+endfunction()
+
+function(_pmm_conan_set_ensured)
+    set_property(GLOBAL PROPERTY pmm_CONAN_ALREADY_ENSURED TRUE)
+endfunction()
 
 # Ensure the presence of a `PMM_CONAN_EXECUTABLE` program
 function(_pmm_ensure_conan)
+    set(req_install)
+
+    _pmm_conan_vars()
+
+    set(_PMM_CONAN_NEEDS_REINSTALL FALSE)
+    get_cmake_property(
+            __conan_ensure_ran
+            pmm_CONAN_ALREADY_ENSURED
+            )
+
     if(PMM_CONAN_EXECUTABLE)
         if(NOT EXISTS "${PMM_CONAN_EXECUTABLE}")
-            _pmm_log(WARNING "Conan executable '${PMM_CONAN_EXECUTABLE}' from a prior configuration is gone. Looking for a new one.")
-            unset(PMM_CONAN_EXECUTABLE CACHE)
+            _pmm_log(WARNING "Conan executable '${PMM_CONAN_EXECUTABLE}' from a prior configuration is gone.")
+            set(_PMM_CONAN_NEEDS_REINSTALL TRUE)
         else()
-            _pmm_log(DEBUG "Conan executable already set: ${PMM_CONAN_EXECUTABLE}")
+            if(__conan_ensure_ran OR NOT PMM_CONAN_PIP_ALWAYS_INSTALL)
+                _pmm_conan_set_ensured()
+                _pmm_log(DEBUG "Conan executable already set: ${PMM_CONAN_EXECUTABLE}")
+                return()
+            endif()
+        endif()
+    endif()
+
+    # Find a user-installed Conan executable
+    # Try to find an existing Conan installation
+    set(pyenv_root_env "$ENV{PYENV_ROOT}")
+    if(pyenv_root_env)
+        file(GLOB pyenv_versions "${pyenv_root_env}/versions/*/")
+    else()
+        file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*/")
+    endif()
+    _pmm_log(VERBOSE "Found pyenv installations: ${pyenv_versions}")
+    set(_prev "${PMM_CONAN_EXECUTABLE}")
+    unset(PMM_CONAN_EXECUTABLE)
+    unset(PMM_CONAN_EXECUTABLE CACHE)
+    unset(PMM_CONAN_EXECUTABLE PARENT_SCOPE)
+    if(NOT PMM_CONAN_PIP_ALWAYS_INSTALL AND NOT PMM_CONAN_IGNORE_EXTERNAL_CONAN)
+        file(GLOB py_installs C:/Python*)
+        find_program(
+            PMM_CONAN_EXECUTABLE conan
+            HINTS
+                ${pyenv_versions}
+            PATHS
+                "$ENV{HOME}/.local"
+                ${py_installs}
+            PATH_SUFFIXES
+                .
+                bin
+                Scripts
+            DOC "Path to Conan executable"
+            )
+        if(PMM_CONAN_EXECUTABLE)
+            # We found an executable, and we haven't been asked to always install
+            if(NOT _prev)
+                _pmm_log("Found Conan: ${PMM_CONAN_EXECUTABLE}")
+            endif()
+            _pmm_conan_set_ensured()
             return()
         endif()
     endif()
 
-    _pmm_conan_vars()
+    # Before we continue, lock access to the virtualenv
+    string(TIMESTAMP before_lock_time "%s" UTC)
     _pmm_log(DEBUG "Lock access to virtualenv directory ${_PMM_CONAN_VENV_DIR}")
-
     file(
         LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
         GUARD FUNCTION
@@ -111,32 +174,58 @@ function(_pmm_ensure_conan)
             LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
             GUARD FUNCTION
             TIMEOUT 60
+            RESULT_VARIABLE lock_res
             )
+        if(lock_res)
+            _pmm_log("Unable to obtain lock after 60 seconds. We'll try for one more minute...")
+            file(
+                LOCK "${_PMM_CONAN_VENV_DIR}" DIRECTORY
+                GUARD FUNCTION
+                TIMEOUT 60
+                RESULT_VARIABLE lock_res
+                )
+            if(lock_res)
+                message(FATAL_ERROR "Unable to obtain exclusive lock on directory ${_PMM_CONAN_VENV_DIR}. Abort.")
+            endif()
+        endif()
     endif()
+    string(TIMESTAMP after_lock_time "%s" UTC)
+    math(EXPR lock_wait_duration "${after_lock_time} - ${before_lock_time}")
+    _pmm_log(DEBUG "It took ${lock_wait_duration} seconds to obtain the virtualenv lock")
 
-    # Try to find an existing Conan installation
-    file(GLOB pyenv_versions "$ENV{HOME}/.pyenv/versions/*")
-    _pmm_log(VERBOSE "Found pyenv installations: ${pyenv_versions}")
-    set(_prev "${PMM_CONAN_EXECUTABLE}")
-    file(GLOB py_installs C:/Python*)
+    # Find Conan in a virtualenv that PMM created
     find_program(
         PMM_CONAN_EXECUTABLE conan
-        HINTS
-            "${_PMM_CONAN_VENV_DIR}"
-            ${pyenv_versions}
-        PATHS
-            "$ENV{HOME}/.local"
-            ${py_installs}
+        PATHS "${_PMM_CONAN_VENV_DIR}"
+        NO_DEFAULT_PATH
         PATH_SUFFIXES
             .
             bin
             Scripts
         DOC "Path to Conan executable"
         )
-    if(PMM_CONAN_EXECUTABLE)
-        if(NOT _prev)
-            _pmm_log("Found Conan: ${PMM_CONAN_EXECUTABLE}")
+    if(NOT PMM_CONAN_EXECUTABLE)
+        if(EXISTS "${_PMM_CONAN_VENV_DIR}/pyvenv.cfg")
+            message(WARNING
+                    "There exists a PMM Conan virtualenv directory "
+                    "(${_PMM_CONAN_VENV_DIR}), but we did not find a Conan "
+                    "executable inside it. This is very unexpected..."
+                    )
         endif()
+    elseif(PMM_CONAN_PIP_ALWAYS_INSTALL)
+        # The user wants us to _always_ install a new Conan
+        get_cmake_property(reinst_notified pmm_CONAN_REINSTALL_NOTIFIED)
+        if(NOT reinst_notified)
+            _pmm_log("We found a PMM-provided Conan, but we need to re-install")
+            set_property(GLOBAL PROPERTY pmm_CONAN_REINSTALL_NOTIFIED TRUE)
+        endif()
+        set(_PMM_CONAN_NEEDS_REINSTALL TRUE)
+        unset(PMM_CONAN_EXECUTABLE CACHE)
+    else()
+        if(NOT _prev)
+            _pmm_log("Found PMM-provided virtualenv Conan executable: ${PMM_CONAN_EXECUTABLE}")
+        endif()
+        _pmm_conan_set_ensured()
         return()
     endif()
 
@@ -145,9 +234,9 @@ function(_pmm_ensure_conan)
         return()
     endif()
 
-    _pmm_log("No existing Conan installation found. We'll try to obtain one.")
+    _pmm_log("Attempting to obtain a Conan binary...")
 
-    # No conan. Let's try to get it using Python
+    # Let's get Conan. Let's try to get it using Python
     _pmm_find_python3(py3_exe)
     if(py3_exe)
         _pmm_get_conan_venv("Python 3" "${py3_exe}")
@@ -155,6 +244,7 @@ function(_pmm_ensure_conan)
         _pmm_log(VERBOSE "No Python 3 candidate found. We'll check Python 2.")
     endif()
     if(PMM_CONAN_EXECUTABLE)
+        _pmm_conan_set_ensured()
         return()
     endif()
     _pmm_find_python2(py2_exe)
@@ -162,6 +252,10 @@ function(_pmm_ensure_conan)
         _pmm_get_conan_venv("Python 2" "${py2_exe}")
     else()
         _pmm_log(VERBOSE "No Python 2 candidate found.")
+    endif()
+    if(PMM_CONAN_EXECUTABLE)
+        _pmm_conan_set_ensured()
+        return()
     endif()
     if(NOT py3_exe AND NOT py2_exe)
         message(FATAL_ERROR "No conan executable found, and no Python was found to install it.")
@@ -171,9 +265,10 @@ endfunction()
 
 function(_pmm_vs_version out)
     set(ver ${MSVC_VERSION})
-    if(ver GREATER_EQUAL 1920)
-        _pmm_log(WARNING "PMM doesn't yet recognize this MSVC version. You may need to upgrade PMM.")
-        set(ret 15)
+    if(ver GREATER_EQUAL 1930)
+        _pmm_log(WARNING "PMM doesn't yet recognize this MSVC version (${ver}). You may need to upgrade PMM.")
+    elseif(ver GREATER_EQUAL 1920)
+        set(ret 16)
     elseif(ver GREATER_EQUAL 1910)
         set(ret 15)
     elseif(ver GREATER_EQUAL 1900)
@@ -224,10 +319,14 @@ function(_pmm_conan_upgrade)
         PATH_SUFFIXES bin Scripts
         )
     _pmm_log("Upgrading Conan...")
-    _pmm_exec("${venv_py}" -m pip install --quiet --upgrade "conan<${PMM_CONAN_MAX_VERSION}" NO_EAT_OUTPUT)
+    unset(PMM_CONAN_EXECUTABLE CACHE)
+    _pmm_exec("${venv_py}" -m pip install --quiet --upgrade ${PMM_CONAN_PIP_INSTALL_ARGS} NO_EAT_OUTPUT)
     if(_PMM_RC)
         message(FATAL_ERROR "Conan upgrade failed [${_PMM_RC}]")
     endif()
+    set(_PMM_ENSURE_CONAN_NO_INSTALL TRUE)
+    _pmm_ensure_conan()
+    set(_PMM_ENSURE_CONAN_NO_INSTALL FALSE)
     _pmm_log("Conan upgrade successful")
 endfunction()
 
@@ -280,6 +379,10 @@ function(_pmm_conan_get_settings out)
     if(NOT ARG_SETTINGS MATCHES ";?os=")
         _pmm_log(DEBUG "Using os=${os}")
         list(APPEND ret os=${os})
+    endif()
+    if(NOT ARG_SETTINGS MATCHES ";?os_build=")
+        _pmm_log(DEBUG "Using os_build=${os}")
+        list(APPEND ret os_build=${os})
     endif()
 
     ## Check for GNU (GCC)
@@ -356,16 +459,6 @@ function(_pmm_conan_get_settings out)
         message(FATAL_ERROR "Unable to detect compiler setting for Conan from CMake. (Unhandled compiler ID ${comp_id}).")
     endif()
 
-    if(NOT CMAKE_CONFIGURATION_TYPES)
-        set(bt "${CMAKE_BUILD_TYPE}")
-        if(NOT bt)
-            _pmm_log("WARNING: CMAKE_BUILD_TYPE was not set explicitly. We'll install your dependencies as 'Debug'")
-            set(bt Debug)
-        endif()
-        _pmm_log(DEBUG "Using build_type=${bt}")
-        list(APPEND ret build_type=${bt})
-    endif()
-
     # Todo: Cross compiling
     if(NOT ARG_SETTINGS MATCHES ";?arch=")
         if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -376,10 +469,23 @@ function(_pmm_conan_get_settings out)
             list(APPEND ret arch=x86)
         endif()
     endif()
+    if(NOT ARG_SETTINGS MATCHES ";?arch_build=")
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            _pmm_log(DEBUG "Using arch_build=${x86_64}")
+            list(APPEND ret arch_build=x86_64)
+        else()
+            _pmm_log(DEBUG "Using arch_build=${x86}")
+            list(APPEND ret arch_build=x86)
+        endif()
+    endif()
 
-    if(NOT ARG_SETTINGS MATCHES ";?cppstd=")
+    if(NOT (ARG_SETTINGS MATCHES ";?(compiler\\.)?cppstd="))
         if(CMAKE_CXX_STANDARD)
-            list(APPEND ret cppstd=${CMAKE_CXX_STANDARD})
+            if(CONAN_VERSION VERSION_LESS PMM_CONAN_CPPSTD_DEPRECATE_VERSION)
+                list(APPEND ret cppstd=${CMAKE_CXX_STANDARD})
+            else()
+                list(APPEND ret compiler.cppstd=${CMAKE_CXX_STANDARD})
+            endif()
         endif()
     endif()
 
@@ -391,17 +497,7 @@ function(_pmm_conan_get_settings out)
 endfunction()
 
 
-function(_pmm_conan_install_1)
-    set(src "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(bin "${CMAKE_CURRENT_BINARY_DIR}")
-    # Install the thing
-    # Do the regular install logic
-    get_filename_component(conan_inc "${bin}/conanbuildinfo.cmake" ABSOLUTE)
-    get_filename_component(conan_timestamp_file "${bin}/conaninfo.txt" ABSOLUTE)
-    get_filename_component(libman_inc "${bin}/libman.cmake" ABSOLUTE)
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
-
-    get_filename_component(profile_file "${bin}/pmm-conan.profile" ABSOLUTE)
+function(_pmm_conan_create_profile _build_type)
     set(profile_lines "[settings]")
 
     # Get the settings for the profile
@@ -410,6 +506,7 @@ function(_pmm_conan_install_1)
     foreach(setting IN LISTS ARG_SETTINGS)
         list(APPEND profile_lines "${setting}")
     endforeach()
+    list(APPEND profile_lines "build_type=${_build_type}")
 
     # Add the options to the profile
     list(APPEND profile_lines "" "[options]")
@@ -429,28 +526,52 @@ function(_pmm_conan_install_1)
     endforeach()
 
     string(REPLACE ";" "\n" profile_content "${profile_lines}")
-    _pmm_write_if_different("${profile_file}" "${profile_content}")
-    set(profile_changed "${_PMM_DID_WRITE}")
+    get_filename_component(_profile_file "${CMAKE_CURRENT_BINARY_DIR}/pmm-conan-${_build_type}.profile" ABSOLUTE)
+    _pmm_write_if_different("${_profile_file}" "${profile_content}")
+    set(profile_changed "${_PMM_DID_WRITE}" PARENT_SCOPE)
+    set(profile_file ${_profile_file} PARENT_SCOPE)
+endfunction()
+
+function(_pmm_conan_run_install _build_type _generator_name )
+    # Install the thing
+    # Do the regular install logic
+    get_filename_component(conan_timestamp_file "${CMAKE_CURRENT_BINARY_DIR}/conaninfo.txt" ABSOLUTE)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${conanfile}")
+
+    _pmm_conan_create_profile(${_build_type})
 
     _pmm_set_if_undef(ARG_BUILD missing)
     set(conan_args --profile "${profile_file}")
-    list(APPEND conan_args --generator cmake --build ${ARG_BUILD})
+    list(APPEND conan_args --generator ${_generator_name} --build ${ARG_BUILD})
     set(conan_install_cmd
         "${CMAKE_COMMAND}" -E env CONAN_LIBMAN_FOR=cmake
-        "${PMM_CONAN_EXECUTABLE}" install "${src}" ${conan_args}
+        "${PMM_CONAN_EXECUTABLE}" install "${CMAKE_CURRENT_SOURCE_DIR}" ${conan_args}
         )
-    set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd.txt")
+    set(prev_cmd_file "${PMM_DIR}/_prev_conan_install_cmd_${_build_type}.txt")
+    # Check if we need to re-run the conan install
     set(do_install FALSE)
-    if(EXISTS "${conan_timestamp_file}" AND "${conanfile}" IS_NEWER_THAN "${conan_timestamp_file}")
-        _pmm_log(DEBUG "Need to run conan install: ${conanfile} is newer than the last install run")
-        set(do_install TRUE)
+    # Check if any "install inputs" are newer
+    set(more_inputs)
+    if(__install_depends)
+        file(GLOB_RECURSE more_inputs CONFIGURE_DEPENDS ${__install_depends})
     endif()
+    set(install_inputs "${__conanfile}" ${more_inputs})
+    foreach(inp IN LISTS install_inputs)
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${inp}")
+        if(EXISTS "${conan_timestamp_file}" AND "${inp}" IS_NEWER_THAN "${conan_timestamp_file}")
+            _pmm_log(DEBUG "Need to run conan install: ${inp} is newer than the last install run")
+            set(do_install TRUE)
+        endif()
+    endforeach()
+    # Check if the install has never occurred
     if(NOT EXISTS "${prev_cmd_file}")
         _pmm_log(DEBUG "Need to run conan install: Never been run")
         set(do_install TRUE)
+    # Or if the profile has changed
     elseif(profile_changed)
         _pmm_log(DEBUG "Need to run conan install: Profile has changed")
         set(do_install TRUE)
+    # Or if the install command has changed
     else()
         file(READ "${prev_cmd_file}" prev_cmd)
         if(NOT prev_cmd STREQUAL conan_install_cmd)
@@ -461,19 +582,17 @@ function(_pmm_conan_install_1)
     if(NOT do_install)
         _pmm_log(VERBOSE "Conan installation is up-to-date. Not running Conan.")
     else()
-        _pmm_log("Installing Conan requirements from ${conanfile}")
+        _pmm_log("Installing Conan requirements from ${__conanfile}")
         _pmm_exec(${conan_install_cmd}
-            WORKING_DIRECTORY "${bin}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
             NO_EAT_OUTPUT
             )
         if(_PMM_RC)
-            message(SEND_ERROR "Conan install failed [${_PMM_RC}]:\n${_PMM_OUTPUT}")
+            message(FATAL_ERROR "Conan install failed [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         else()
             file(WRITE "${prev_cmd_file}" "${conan_install_cmd}")
         endif()
     endif()
-    set(__conan_inc "${conan_inc}" PARENT_SCOPE)
-    set(__libman_inc "${libman_inc}" PARENT_SCOPE)
 endfunction()
 
 
@@ -485,15 +604,32 @@ endmacro()
 
 
 macro(_pmm_conan_install)
-    if(CONAN_EXPORTED AND CONAN_IN_LOCAL_CACHE)
+    if(CONAN_EXPORTED)
         # When we are being built by conan in the local cache directory we don't need
         # to do an actual conan install: It has already been done for us.
         set(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake")
         _pmm_log("We are being built by Conan, so we won't run the install step.")
         _pmm_log("Assuming ${__conan_inc} is present.")
-    else()
-        _pmm_conan_install_1()
+    else ()
+        if (CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE AND PMM_CMAKE_MULTI)
+            get_filename_component(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo_multi.cmake" ABSOLUTE)
+            _pmm_log(WARNING "Using cmake-multi generator, this generator is experimental")
+            _pmm_conan_run_install("Debug"   "cmake_multi")
+            _pmm_conan_run_install("Release" "cmake_multi")
+        else ()
+            set(bt "${CMAKE_BUILD_TYPE}")
+            if (NOT bt)
+                _pmm_log("WARNING: CMAKE_BUILD_TYPE was not set explicitly. We'll install your dependencies as 'Debug'")
+                set(bt "Debug")
+            endif ()
+            get_filename_component(__conan_inc "${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake" ABSOLUTE)
+            _pmm_conan_run_install("${bt}" "cmake")
+        endif ()
     endif()
+
+    get_filename_component(libman_inc "${CMAKE_CURRENT_BINARY_DIR}/libman.cmake" ABSOLUTE)
+    set(__libman_inc "${libman_inc}")
+
     _pmm_log(VERBOSE "Including Conan generated file ${__conan_inc}")
     include("${__conan_inc}" OPTIONAL RESULT_VARIABLE __was_included)
     if(NOT __was_included)
@@ -515,18 +651,35 @@ macro(_pmm_conan_install)
 endmacro()
 
 
-function(_conan_ensure_remotes remotes)
+function(_pmm_conan_norm_url_var varname)
+    set(url "${${varname}}")
+    while(url MATCHES "(.*)/+$")
+        set(url "${CMAKE_MATCH_1}")
+    endwhile()
+    set("${varname}" "${url}" PARENT_SCOPE)
+endfunction()
+
+
+function(_pmm_conan_ensure_remotes remotes)
+    file(
+        LOCK "${_PMM_CONAN_VENV_DIR}/.pmm-remotes-lk" DIRECTORY
+        GUARD FUNCTION
+        TIMEOUT 60
+        )
     _pmm_exec("${PMM_CONAN_EXECUTABLE}" remote list)
     string(STRIP "${_PMM_OUTPUT}" out)
     string(REPLACE "\n" ";" lines "${out}")
     set_property(GLOBAL PROPERTY CONAN_REMOTES "")
     set(all_urls)
     foreach(line IN LISTS lines)
-        if(NOT line MATCHES "^([^:]+): (.*) \\[Verify SSL: (.+)\]")
+        if(line MATCHES "^(WARN|DEBUG): ")
+            # Ignore this line
+        elseif(NOT line MATCHES "^([^:]+): (.*) \\[Verify SSL: (.+)\]")
             message(WARNING "Unparseable `conan remote list` line: ${line}")
         else()
             set(name "${CMAKE_MATCH_1}")
             set(url "${CMAKE_MATCH_2}")
+            _pmm_conan_norm_url_var(url)
             set(ssl_verify "${CMAKE_MATCH_3}")
             string(TOUPPER "${ssl_verify}" ssl_verify)
             _pmm_log(DEBUG "Found conan remote ${name} at ${url} (Verify SSL: ${ssl_verify})")
@@ -550,6 +703,7 @@ function(_conan_ensure_remotes remotes)
         endif()
         set(name "${CMAKE_MATCH_1}")
         set(url "${CMAKE_MATCH_2}")
+        _pmm_conan_norm_url_var(url)
         set(verify_ssl True)
         if(name MATCHES "(.+)(::no_verify)")
             set(verify_ssl False)
@@ -570,13 +724,15 @@ function(_pmm_conan)
     _pmm_parse_args(
         . BINCRAFTERS COMMUNITY
         - BUILD
-        + SETTINGS OPTIONS ENV REMOTES
+        + SETTINGS OPTIONS ENV REMOTES INSTALL_DEPENDS
         )
 
     get_cmake_property(__was_setup _PMM_CONAN_WAS_SETUP)
     if(__was_setup)
         _pmm_log(WARNING "pmm(CONAN) ran more than once during configure. This is not supported.")
     endif()
+
+    _pmm_conan_vars()
 
     if(ARG_BINCRAFTERS)
         list(APPEND ARG_REMOTES bincrafters https://api.bintray.com/conan/bincrafters/public-conan)
@@ -632,14 +788,16 @@ function(_pmm_conan)
     endforeach()
 
     # Enable the remote repositories that the user may want to use
-    _conan_ensure_remotes("${ARG_REMOTES}")
+    _pmm_conan_ensure_remotes("${ARG_REMOTES}")
 
     # Check that there is a Conanfile, or we might be otherwise building in the
     # local cache.
-    if(NOT DEFINED conanfile AND NOT (CONAN_EXPORTED AND CONAN_IN_LOCAL_CACHE))
+    if(NOT DEFINED conanfile AND NOT CONAN_EXPORTED)
         message(FATAL_ERROR "pf(CONAN) requires a Conanfile in your project source directory")
     endif()
     # Go!
+    set(__conanfile "${conanfile}")
+    set(__install_depends "${ARG_INSTALL_DEPENDS}")
     _pmm_conan_install()
     # Lift these env vars so that they are visible after pmm() returns
     _pmm_lift(CMAKE_MODULE_PATH)
@@ -649,61 +807,165 @@ function(_pmm_conan)
 endfunction()
 
 
+function(_pmm_conan_gen_profile destpath be_lazy)
+    if(EXISTS "${destpath}" AND be_lazy)
+        return()
+    endif()
+    set(tmpdir "${PMM_DIR}/_gen-profile-project")
+    set(tmpdir_build "${tmpdir}/_build")
+    file(REMOVE_RECURSE "${tmpdir}")
+    file(REMOVE_RECURSE "${tmpdir_build}")
+    # Detect if we have Ninja
+    find_program(_ninja_exe NAMES ninja-build ninja)
+    # Generate a small project
+    file(MAKE_DIRECTORY "${tmpdir}")
+    string(CONFIGURE [[
+        cmake_minimum_required(VERSION 3.7)
+        project(Dummy)
+        set(PMM_DIR "@PMM_DIR@")
+        include("@CMAKE_SCRIPT_MODE_FILE@")
+        pmm(CONAN)
+    ]] cml @ONLY)
+    file(WRITE "${tmpdir}/conanfile.txt" "")
+    file(WRITE "${tmpdir}/CMakeLists.txt" "${cml}")
+    set(more_args)
+    if(_ninja_exe)
+        list(APPEND more_args "-GNinja")
+    endif()
+    # Configure the project
+    _pmm_log("Generating Conan profile ...")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" "-H${tmpdir}" "-B${tmpdir_build}" ${more_args}
+        RESULT_VARIABLE retc
+        OUTPUT_VARIABLE out
+        ERROR_VARIABLE out
+        )
+    if(retc)
+        message(FATAL_ERROR "Failed to configure project to generate Conan profile [${retc}]:\n${out}")
+    endif()
+    file(GLOB profile_file "${tmpdir_build}/pmm-conan*.profile")
+    file(RENAME "${profile_file}" "${destpath}")
+    _pmm_log("Conan profile written to file: ${destpath}")
+endfunction()
+
+
+function(_pmm_print_conan_where cookie)
+    message("${cookie}${PMM_CONAN_EXECUTABLE}")
+endfunction()
+
+
 function(_pmm_script_main_conan)
     _pmm_parse_args(
+        -hardcheck
         .
             /Version
             /Create
             /Upload
+            /All
+            /NoOverwrite
+            /Clean
             /Export
             /Install
             /Upgrade
             /Uninstall
-        - /Ref /Remote
+            /GenProfile
+            /Lazy  # For /GenProfile
+        - /Ref /Remote /Profile /Where
+        + /Settings /Options /BuildPolicy /EnsureRemotes
         )
+
+    _pmm_conan_vars()
 
     if(ARG_/Uninstall)
         _pmm_conan_uninstall()
-        return()
     endif()
 
     if(ARG_/Install)
         set(_PMM_ENSURE_CONAN_NO_INSTALL TRUE)
         _pmm_ensure_conan()
         unset(_PMM_ENSURE_CONAN_NO_INSTALL)
-        if(NOT PMM_CONAN_EXECUTABLE)
+        if(NOT PMM_CONAN_EXECUTABLE OR PMM_CONAN_PIP_ALWAYS_INSTALL)
             _pmm_ensure_conan()
         elseif(ARG_/Upgrade)
             _pmm_conan_upgrade()
         else()
             _pmm_log("Not upgrading the existing installation. Use `/Upgrade` to upgrade")
         endif()
-        return()
+        if(NOT PMM_CONAN_EXECUTABLE)
+            message(FATAL_ERROR "Failed to install a Conan executable")
+        endif()
+    endif()
+
+    # Disable automatic installation of Conan from here on
+    set(_PMM_ENSURE_CONAN_NO_INSTALL TRUE)
+
+    if(DEFINED ARG_/Where)
+        _pmm_ensure_conan()
+        if(NOT PMM_CONAN_EXECUTABLE)
+            message(FATAL_ERROR "/Where may only be used after Conan has been installed. Try passing /Install")
+        endif()
+        _pmm_print_conan_where("${ARG_/Where}")
     endif()
 
     if(ARG_/Version)
         _pmm_ensure_conan()
         execute_process(COMMAND "${PMM_CONAN_EXECUTABLE}" --version)
-        return()
+    endif()
+
+    if(ARG_/EnsureRemotes)
+        _pmm_ensure_conan()
+        if(NOT PMM_CONAN_EXECUTABLE)
+            message(FATAL_ERROR "/EnsureRemotes may only be used after Conan has been installed. Try passing /Install")
+        endif()
+        _pmm_conan_ensure_remotes("${ARG_/EnsureRemotes}")
     endif()
 
     if(ARG_/Create AND ARG_/Export)
         message(FATAL_ERROR "/Export and /Create can not be specified together")
     endif()
 
+    if(ARG_/GenProfile)
+        if(NOT ARG_/Profile)
+            message(FATAL_ERROR "Specify `/Profile <path>` when using /GenProfile")
+        endif()
+        get_filename_component(pr_dest "${ARG_/Profile}" ABSOLUTE)
+        _pmm_conan_gen_profile("${pr_dest}" "${ARG_/Lazy}")
+    endif()
+
+    set(profile_args)
+    if(ARG_/Profile)
+        set(profile_args --profile "${ARG_/Profile}")
+    endif()
+    set(settings_args)
+    foreach(s IN LISTS ARG_/Settings)
+        list(APPEND settings_args --settings "${s}")
+    endforeach()
+    set(options_args)
+    foreach(o IN LISTS ARG_/Options)
+        list(APPEND options_args --options "${o}")
+    endforeach()
+    # All args used for package install/create/info etc.:
+    set(all_config_args ${profile_args} ${settings_args} ${options_args})
+
+    set(create_args ${all_config_args})
+
     if(ARG_/Create)
         if(NOT ARG_/Ref)
             message(FATAL_ERROR "Pass a /Ref for /Create")
         endif()
         _pmm_ensure_conan()
+        foreach(policy IN LISTS ARG_/BuildPolicy)
+            list(APPEND create_args "--build=${policy}")
+        endforeach()
         execute_process(
-            COMMAND "${PMM_CONAN_EXECUTABLE}" create "${CMAKE_SOURCE_DIR}" "${ARG_/Ref}"
+            COMMAND "${PMM_CONAN_EXECUTABLE}" create ${create_args} "${CMAKE_SOURCE_DIR}" "${ARG_/Ref}"
             RESULT_VARIABLE retc
             )
         if(retc)
             message(FATAL_ERROR "Create failed [${retc}]")
         endif()
     endif()
+
     if(ARG_/Export)
         if(NOT ARG_/Ref)
             message(FATAL_ERROR "Pass /Ref when for /Export")
@@ -718,23 +980,36 @@ function(_pmm_script_main_conan)
         endif()
     endif()
 
+    if(ARG_/Clean)
+        _pmm_ensure_conan()
+        execute_process(COMMAND "${PMM_CONAN_EXECUTABLE}" remove * -fsb)
+    endif()
+
     if(ARG_/Upload)
         _pmm_ensure_conan()
         if(ARG_/Ref MATCHES ".+@.+")
             set(full_ref "${ARG_/Ref}")
         else()
-            _pmm_exec("${PMM_CONAN_EXECUTABLE}" info "${CMAKE_SOURCE_DIR}")
+            _pmm_exec("${PMM_CONAN_EXECUTABLE}" info ${all_config_args} "${CMAKE_SOURCE_DIR}")
             if(_PMM_RC)
                 message(FATAL_ERROR "Failed to get package info [${_PMM_RC}]:\n${_PMM_OUTPUT}")
             endif()
             if(NOT _PMM_OUTPUT MATCHES "([^\n]+)@PROJECT.*")
-                message(FATAL_ERROR "Can't parse Conan output [${_PMM_RC}]:\n${_PMM_OUTPUT}")
+                if(NOT _PMM_OUTPUT MATCHES "conanfile[^\n]+ \\(([^\n]+)@None/None")
+                    message(FATAL_ERROR "Can't parse Conan output [${_PMM_RC}]:\n${_PMM_OUTPUT}")
+                endif()
             endif()
             set(full_ref "${CMAKE_MATCH_1}@${ARG_/Ref}")
         endif()
         set(cmd "${PMM_CONAN_EXECUTABLE}" upload --confirm --check)
         if(ARG_/Remote)
             list(APPEND cmd --remote "${ARG_/Remote}")
+        endif()
+        if(ARG_/All)
+            list(APPEND cmd --all)
+        endif()
+        if(ARG_/NoOverwrite)
+            list(APPEND cmd --no-overwrite all)
         endif()
         list(APPEND cmd "${full_ref}")
         execute_process(

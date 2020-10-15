@@ -5,7 +5,7 @@ include(${PMM_INCLUDE})
 pmm(
     DEBUG
     VCPKG
-        REVISION cf7e2f3906f78dcb89f320a642428b54c00e4e0b
+        REVISION 2020.06
         REQUIRES fmt
     )
 

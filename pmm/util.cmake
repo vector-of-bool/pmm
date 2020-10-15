@@ -35,22 +35,26 @@ endfunction()
 #   inhibits macro argument substitution. It is painful, but it makes this magic
 #   work.
 macro(_pmm_parse_args)
-    cmake_parse_arguments(_ "-nocheck" "" ".;-;+" "${ARGV}")
-    _pmm_parse_arglist("${${}ARGV}" "${__.}" "${__-}" "${__+}")
+    cmake_parse_arguments(_ "-nocheck;-hardcheck" "" ".;-;+" "${ARGV}")
+    set(__arglist "${${}ARGV}")
+    _pmm_parse_arglist("${__.}" "${__-}" "${__+}")
 endmacro()
 
 macro(_pmm_parse_script_args)
-    cmake_parse_arguments(_ "-nocheck" "" ".;-;+" "${ARGV}")
-    _pmm_read_script_argv(__script_argv)
-    _pmm_parse_arglist("${__script_argv}" "${__.}" "${__-}" "${__+}")
+    cmake_parse_arguments(_ "-nocheck;-hardcheck" "" ".;-;+" "${ARGV}")
+    _pmm_read_script_argv(__arglist)
+    _pmm_parse_arglist("${__.}" "${__-}" "${__+}")
 endmacro()
 
-macro(_pmm_parse_arglist argv opt args list_args)
-    cmake_parse_arguments(ARG "${opt}" "${args}" "${list_args}" "${argv}")
+macro(_pmm_parse_arglist opt args list_args)
+    cmake_parse_arguments(ARG "${opt}" "${args}" "${list_args}" "${__arglist}")
     if(NOT __-nocheck)
         foreach(arg IN LISTS ARG_UNPARSED_ARGUMENTS)
             message(WARNING "Unknown argument: ${arg}")
         endforeach()
+        if(__-hardcheck AND NOT ("${ARG_UNPARSED_ARGUMENTS}" STREQUAL ""))
+            message(FATAL_ERROR "Unknown arguments provided.")
+        endif()
     endif()
 endmacro()
 
@@ -80,11 +84,20 @@ function(_pmm_exec)
             ERROR_VARIABLE out
             )
     endif()
+    list(FIND ARGN WORKING_DIRECTORY wd_kw_idx)
+    set(wd_arg)
+    if(wd_kw_idx GREATER -1)
+        math(EXPR wd_idx "${wd_kw_idx} + 1")
+        list(GET ARGN "${wd_idx}" wd_dir)
+        LIST(REMOVE_AT ARGN "${wd_idx}" "${wd_kw_idx}")
+        set(wd_arg WORKING_DIRECTORY "${wd_dir}")
+    endif()
     list(REMOVE_ITEM ARGN NO_EAT_OUTPUT)
     execute_process(
         COMMAND ${ARGN}
         ${output_args}
         RESULT_VARIABLE rc
+        ${wd_arg}
         )
     set(_PMM_RC "${rc}" PARENT_SCOPE)
     set(_PMM_OUTPUT "${out}" PARENT_SCOPE)
@@ -110,4 +123,28 @@ function(_pmm_write_if_different filepath content)
         _pmm_log(DEBUG "Contents of ${filepath} are up-to-date")
     endif()
     set(_PMM_DID_WRITE "${do_write}" PARENT_SCOPE)
+endfunction()
+
+
+function(_pmm_get_var_from_file filepath varname)
+    include(${filepath})
+    get_property(propt VARIABLE PROPERTY ${varname})
+    set(${varname} ${propt} PARENT_SCOPE)
+endfunction()
+
+
+function(_pmm_generate_cli_scripts force)
+    # The sh scipt
+    if (NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.sh" OR ${force})
+        file(WRITE "${_PMM_USER_DATA_DIR}/pmm-cli.sh" "#!/bin/sh\n${CMAKE_COMMAND} -P ${PMM_MODULE} \"$@\"")
+        # Fix to make the sh executable
+        file(COPY "${_PMM_USER_DATA_DIR}/pmm-cli.sh"
+             DESTINATION ${CMAKE_BINARY_DIR}
+             FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+        )
+    endif ()
+    # The bat scipt
+    if (NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.bat" OR ${force})
+        file(WRITE "${CMAKE_BINARY_DIR}/pmm-cli.bat" "@echo off\n\"${CMAKE_COMMAND}\" -P \"${PMM_MODULE}\" %*")
+    endif ()
 endfunction()

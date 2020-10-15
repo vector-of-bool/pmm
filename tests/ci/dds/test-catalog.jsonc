@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "packages": {
+        "neo-fun": {
+            "0.3.2": {
+                "description": "A fundamentals library",
+                "git": {
+                    "url": "https://github.com/vector-of-bool/neo-fun.git",
+                    "ref": "0.3.2"
+                }
+            }
+        }
+    }
+}

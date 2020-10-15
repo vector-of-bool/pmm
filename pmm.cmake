@@ -1,6 +1,6 @@
 ## MIT License
 ##
-## Copyright (c) 2018 vector-of-bool
+## Copyright (c) 2019 vector-of-bool
 ##
 ## Permission is hereby granted, free of charge, to any person obtaining a copy
 ## of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 ## SOFTWARE.
 
 # Bump this version to change what PMM version is downloaded
-set(PMM_VERSION_INIT 1.3.1)
+set(PMM_VERSION_INIT 1.5.1)
 
 # Helpful macro to set a variable if it isn't already set
 macro(_pmm_set_if_undef varname)
@@ -40,9 +40,24 @@ _pmm_set_if_undef(PMM_URL "${PMM_URL_BASE}/${PMM_VERSION}")
 # The directory where we store our downloaded files
 _pmm_set_if_undef(PMM_DIR_BASE "${CMAKE_BINARY_DIR}/_pmm")
 _pmm_set_if_undef(PMM_DIR "${PMM_DIR_BASE}/${PMM_VERSION}")
+# The location of the current file
+_pmm_set_if_undef(PMM_MODULE "${CMAKE_CURRENT_LIST_FILE}")
 
 # The file that we first download
 set(_PMM_ENTRY_FILE "${PMM_DIR}/entry.cmake")
+
+# Guard against multiple processes trying to use the PMM dir simultaneously
+file(LOCK "${PMM_DIR}/_init-pmm"
+    GUARD PROCESS
+    TIMEOUT 10
+    RESULT_VARIABLE _lock_res
+    )
+if(NOT _lock_res STREQUAL "0")
+    message(WARNING "PMM entry didn't lock the directory ${PMM_DIR} successfully (${_lock_res}). We'll continue as best we can.")
+    set(_pmm_init_did_lock FALSE)
+else()
+    set(_pmm_init_did_lock TRUE)
+endif()
 
 if(NOT EXISTS "${_PMM_ENTRY_FILE}" OR PMM_ALWAYS_DOWNLOAD)
     file(
@@ -52,14 +67,18 @@ if(NOT EXISTS "${_PMM_ENTRY_FILE}" OR PMM_ALWAYS_DOWNLOAD)
         )
     list(GET pair 0 rc)
     list(GET pair 1 msg)
-    if(rc)
-        message(FATAL_ERROR "Failed to download PMM entry file")
-    endif()
+    if (rc)
+        message(FATAL_ERROR "Failed to download PMM entry file: ${msg}")
+    endif ()
     file(RENAME "${_PMM_ENTRY_FILE}.tmp" "${_PMM_ENTRY_FILE}")
 endif()
 
 # ^^^ DO NOT CHANGE THIS LINE vvv
-set(_PMM_BOOTSTRAP_VERSION 1)
+set(_PMM_BOOTSTRAP_VERSION 3)
 # ^^^ DO NOT CHANGE THIS LINE ^^^
 
 include("${_PMM_ENTRY_FILE}")
+
+if(_pmm_init_did_lock)
+    file(LOCK "${PMM_DIR}/_init-pmm" RELEASE)
+endif()

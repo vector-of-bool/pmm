@@ -4,7 +4,6 @@ set(DOCKER_TESTS
     u18-vcpkg
     u16
     u14
-    u12
     )
 
 get_filename_component(DOCKER_TEST_SCRIPT RunDockerTest.cmake ABSOLUTE)
@@ -25,3 +24,15 @@ endif()
 if(NOT NO_CI_TEST_DIR)
     add_subdirectory(ci)
 endif()
+
+add_test(
+    NAME pmm.generate-profile
+    COMMAND
+        ${CMAKE_COMMAND}
+        -DPMM_URL=file://${PROJECT_SOURCE_DIR}/pmm
+        -DPMM_ALWAYS_DOWNLOAD=1
+        -P "${PROJECT_SOURCE_DIR}/pmm.cmake"
+        /Conan
+        /GenProfile
+        /Profile ${PROJECT_BINARY_DIR}/dummy-test.profile
+    )
