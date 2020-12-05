@@ -135,16 +135,16 @@ endfunction()
 
 function(_pmm_generate_cli_scripts force)
     # The sh scipt
-    if (NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.sh" OR ${force})
+    if(NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.sh" OR ${force})
         file(WRITE "${_PMM_USER_DATA_DIR}/pmm-cli.sh" "#!/bin/sh\n${CMAKE_COMMAND} -P ${PMM_MODULE} \"$@\"")
         # Fix to make the sh executable
         file(COPY "${_PMM_USER_DATA_DIR}/pmm-cli.sh"
              DESTINATION ${CMAKE_BINARY_DIR}
              FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
         )
-    endif ()
+    endif()
     # The bat scipt
-    if (NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.bat" OR ${force})
+    if(NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.bat" OR ${force})
         file(WRITE "${CMAKE_BINARY_DIR}/pmm-cli.bat" "@echo off\n\"${CMAKE_COMMAND}\" -P \"${PMM_MODULE}\" %*")
-    endif ()
+    endif()
 endfunction()

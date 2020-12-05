@@ -1,7 +1,7 @@
 function(_pmm_changes version)
     if(PMM_VERSION VERSION_LESS version)
         message(STATUS "[pmm]  - Changes in ${version}:")
-        foreach (change IN LISTS ARGN)
+        foreach(change IN LISTS ARGN)
             message(STATUS "[pmm]     - ${change}")
         endforeach()
     endif()
