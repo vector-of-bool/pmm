@@ -178,21 +178,6 @@ function(_pmm_vcpkg_copy_custom_ports ports_list)
     endforeach ()
 endfunction()
 
-function(_pmm_generate_vcpkg_cli_scripts)
-    # The sh scipt
-    if (NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.sh")
-        file(WRITE "${_PMM_USER_DATA_DIR}/vcpkg.sh" "#!/bin/sh\n\"${PMM_VCPKG_EXECUTABLE}\" \"$@\"")
-        # Fix to make the sh executable
-        file(COPY "${_PMM_USER_DATA_DIR}/vcpkg.sh"
-                DESTINATION ${CMAKE_BINARY_DIR}
-                FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-                )
-    endif ()
-    # The bat scipt
-    if (NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.bat")
-        file(WRITE "${CMAKE_BINARY_DIR}/vcpkg.bat" "@echo off\n\"${PMM_VCPKG_EXECUTABLE}\" %*")
-    endif ()
-endfunction()
 function(_pmm_vcpkg)
     _pmm_parse_args(
         - REVISION TRIPLET
@@ -234,5 +219,5 @@ function(_pmm_vcpkg)
         endif()
     endif()
     set(_PMM_INCLUDE "${vcpkg_inst_dir}/scripts/buildsystems/vcpkg.cmake" PARENT_SCOPE)
-    _pmm_generate_vcpkg_cli_scripts()
+    _pmm_generate_shim(vcpkg "${PMM_VCPKG_EXECUTABLE}")
 endfunction()
