@@ -1,12 +1,14 @@
 function(_pmm_changes version)
-    if (PMM_VERSION VERSION_LESS version)
+    if(PMM_VERSION VERSION_LESS version)
         message(STATUS "[pmm]  - Changes in ${version}:")
         foreach (change IN LISTS ARGN)
             message(STATUS "[pmm]     - ${change}")
-        endforeach ()
-    endif ()
+        endforeach()
+    endif()
 endfunction()
 
+message(STATUS "[pmm] You are using PMM version ${PMM_VERSION}. The latest is ${PMM_LATEST_VERSION}.")
+message(STATUS "[pmm] Changes since ${PMM_VERSION} include the following:")
 _pmm_changes(0.2.0
         "Automatic update checks"
         "CONAN uses the `cmake` generator and automatically defines imported targets"
@@ -83,6 +85,23 @@ _pmm_changes(1.4.2
         )
 _pmm_changes(1.4.3
         "Improve: Update to DDS alpha.4"
+        )
+_pmm_changes(1.5.0
+        "New: Support the 'cmake_multi' generator with Conan"
+        "New: /Conan /Clean to run 'conan remove -fsb *'"
+        "New: IMPORT argument to pmm(DDS) will automatically call import_packages() in some cases"
+        "New: Running pmm() will generate pmm-cli.bat and pmm-cli.sh shell scripts to manage PMM"
+        "New: pmm(VCPKG) supports a PORTS argument, to provide custom vcpkg port files."
+        "Improve: Update to DDS alpha.5"
+        "Improve: Automatically propagate the MSVC_RUNTIME_LIBRARY for dds dependency builds"
+        "Improve: CMAKE_CXX_COMPILER_LAUNCHER sets 'compiler_launcher' in the toolchain"
+        "         (Can be overridden with PMM_DDS_COMPILER_LAUNCHER)"
+        "Fix: Generated CMakeCM paths using bad path separators"
+        "Fix: Multiple calls to pmm(DDS) are allowed, and accumulate deps rather than overriding them"
+        )
+_pmm_changes(1.5.1
+        "Fix: Unable to run in script mode due to define_property() calls"
+        "Fix: Generated Conan profiles without respecting the CMAKE_BUILD_TYPE"
         )
 message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
 message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
