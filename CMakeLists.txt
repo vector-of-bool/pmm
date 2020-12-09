@@ -9,7 +9,8 @@ pmm(CONAN
     BINCRAFTERS COMMUNITY
     REMOTES vob https://api.bintray.com/conan/vector-of-bool/vector-of-bool
     )
-include(latest-info.cmake)
+include(latest-version.cmake)
+include(changelog.cmake)
 
 file(GLOB_RECURSE pmm_sources CONFIGURE_DEPENDS pmm/*)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${pmm_sources})
