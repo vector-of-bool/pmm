@@ -787,6 +787,7 @@ function(_pmm_conan)
     endif()
     # Keep track of what exe we just found
     set(CONAN_PREV_EXE "${PMM_CONAN_EXECUTABLE}" CACHE INTERNAL "Previous known-good Conan executable" FORCE)
+    _pmm_generate_shim(conan "${PMM_CONAN_EXECUTABLE}")
 
     # Find the conanfile for the project
     unset(conanfile)
