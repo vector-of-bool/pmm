@@ -182,6 +182,7 @@ function(_pmm_vcpkg)
     _pmm_parse_args(
         - REVISION TRIPLET
         + REQUIRES PORTS
+        - OVERLAY        
         )
 
     if(NOT DEFINED ARG_REVISION)
@@ -190,6 +191,11 @@ function(_pmm_vcpkg)
     if(NOT DEFINED ARG_TRIPLET)
         _pmm_vcpkg_default_triplet(ARG_TRIPLET)
     endif()
+    if(DEFINED ARG_OVERLAY)
+        set(PMM_VCPKG_OVERLAY "--overlay-ports=${ARG_OVERLAY}")
+    elseif()
+        set(PMM_VCPKG_OVERLAY "")
+    endif()   
     _pmm_log(VERBOSE "Using vcpkg target triplet ${ARG_TRIPLET}")
     get_filename_component(vcpkg_inst_dir "${_PMM_USER_DATA_DIR}/vcpkg-${ARG_REVISION}" ABSOLUTE)
     _pmm_log(DEBUG "vcpkg directory is ${vcpkg_inst_dir}")
@@ -210,6 +216,7 @@ function(_pmm_vcpkg)
             "${PMM_VCPKG_EXECUTABLE}" install
                 --triplet "${ARG_TRIPLET}"
                 ${ARG_REQUIRES}
+                ${PMM_VCPKG_OVERLAY}
             )
         _pmm_exec(${cmd} NO_EAT_OUTPUT)
         if(_PMM_RC)
