@@ -181,7 +181,7 @@ endfunction()
 function(_pmm_vcpkg)
     _pmm_parse_args(
         - REVISION TRIPLET
-        + REQUIRES PORTS
+        + REQUIRES PORTS OVERLAY_PORTS OVERLAY_TRIPLETS
         )
 
     if(NOT DEFINED ARG_REVISION)
@@ -202,6 +202,13 @@ function(_pmm_vcpkg)
         _pmm_vcpkg_copy_custom_ports("${ARG_PORTS}")
     endif()
     if(ARG_REQUIRES)
+        list(APPEND _PMM_OVERLAYS)
+        if(ARG_OVERLAY_PORTS)
+            list(APPEND _PMM_OVERLAYS "--overlay-ports=${ARG_OVERLAY_PORTS}")
+        endif()
+        if(ARG_OVERLAY_TRIPLETS)
+            list(APPEND _PMM_OVERLAYS "--overlay-triplets=${ARG_OVERLAY_TRIPLETS}")
+        endif()
         _pmm_log("Installing requirements with vcpkg")
         set(cmd ${CMAKE_COMMAND} -E env
                 VCPKG_ROOT=${vcpkg_inst_dir}
@@ -210,6 +217,7 @@ function(_pmm_vcpkg)
             "${PMM_VCPKG_EXECUTABLE}" install
                 --triplet "${ARG_TRIPLET}"
                 ${ARG_REQUIRES}
+                ${_PMM_OVERLAYS}
             )
         _pmm_exec(${cmd} NO_EAT_OUTPUT)
         if(_PMM_RC)
