@@ -103,6 +103,9 @@ _pmm_changes(1.5.1
         "Fix: Unable to run in script mode due to define_property() calls"
         "Fix: Generated Conan profiles without respecting the CMAKE_BUILD_TYPE"
         )
+_pmm_changes(1.6.0
+        "New: add OVERLAY_PORTS and OVERLAY_TRIPLETS to pmm(VCPKG)"
+        )
 message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
 message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
 
