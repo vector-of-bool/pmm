@@ -21,11 +21,11 @@
 ## SOFTWARE.
 
 # Bump this version to change what PMM version is downloaded
-set(PMM_VERSION_INIT 1.5.1)
+set(PMM_VERSION_INIT 1.6.0)
 
 # Helpful macro to set a variable if it isn't already set
 macro(_pmm_set_if_undef varname)
-    if(NOT DEFINED "${varname}")
+    if(NOT DEFINED ${varname})
         set("${varname}" "${ARGN}")
     endif()
 endmacro()
