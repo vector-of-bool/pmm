@@ -208,6 +208,7 @@ function(_pmm_vcpkg)
                 CC=${CMAKE_C_COMPILER}
                 CXX=${CMAKE_CXX_COMPILER}
             "${PMM_VCPKG_EXECUTABLE}" install
+	        --recurse
                 --triplet "${ARG_TRIPLET}"
                 ${ARG_REQUIRES}
             )
