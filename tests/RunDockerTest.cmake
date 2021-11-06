@@ -1,16 +1,12 @@
 include(${CMAKE_CURRENT_LIST_DIR}/../pmm/util.cmake)
 _pmm_parse_script_args(
     . /Verbose
-    - /Docker /Test
+    - /Docker /ContainerName /ProjectDir
     )
 
 find_program(ARG_/Docker docker)
 
-get_filename_component(test_dir "${CMAKE_CURRENT_LIST_DIR}/${ARG_/Test}.docker" ABSOLUTE)
-set(test_pr_dir "${test_dir}/project")
-if(NOT EXISTS "${test_pr_dir}")
-    set(test_pr_dir "${CMAKE_CURRENT_LIST_DIR}/default-project")
-endif()
+set(test_pr_dir "${ARG_/ProjectDir}")
 
 if(NOT ARG_/Verbose)
     set(OUTPUT_EAT_ARGS ERROR_VARIABLE out OUTPUT_VARIABLE out)
@@ -28,11 +24,6 @@ function(run_checked)
     endif()
 endfunction()
 
-set(image_name pmm.test_container.${ARG_/Test})
-
-message(STATUS "Building Docker container")
-run_checked(${ARG_/Docker} build -t "${image_name}" "${test_dir}")
-
 message(STATUS "Configuring project")
 get_filename_component(pmm_dir "${CMAKE_CURRENT_LIST_DIR}/../pmm" ABSOLUTE)
 set(mount_args
@@ -40,10 +31,14 @@ set(mount_args
     -v "${CMAKE_CURRENT_LIST_DIR}/../pmm:/host/pmm"
     -v "${CMAKE_CURRENT_LIST_DIR}/../pmm.cmake:/host/pmm.cmake"
     )
-run_checked(${ARG_/Docker} run --rm -t ${mount_args} ${image_name}
-    cmake
-        -H/host/source
-        -B/tmp/build
-        -DPMM_URL=file:///host/pmm
-        -DPMM_INCLUDE=/host/pmm.cmake
+run_checked(${ARG_/Docker} run --rm -t ${mount_args} ${ARG_/ContainerName}
+    ctest
+        --build-and-test /host/source /tmp/build
+        --build-generator "Unix Makefiles"
+        -VV
+        --build-options
+            -DPMM_URL=file:///host/pmm
+            -DPMM_INCLUDE=/host/pmm.cmake
+        --test-command
+            ctest --output-on-failure -j4
     )

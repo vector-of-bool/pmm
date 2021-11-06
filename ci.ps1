@@ -71,7 +71,12 @@ if ($LASTEXITCODE) {
 
 $cm_dir = Split-Path $cmake -Parent
 $ctest = Join-Path $cm_dir "ctest"
-& $cmake -E chdir $bin_dir $ctest -j6 --output-on-failure
+$args = @()
+if ($VerbosePreference) {
+    $args += "-V"
+}
+
+& $cmake -E chdir $bin_dir $ctest -j6 --output-on-failure @args
 if ($LASTEXITCODE) {
     throw "CTest failed [$LASTEXITCODE]"
 }

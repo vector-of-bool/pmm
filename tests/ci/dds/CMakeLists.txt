@@ -9,15 +9,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_COMPILER_LAUNCHER ${CMAKE_COMMAND} -E env FOO=BAR)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>DLL)
-pmm(CMakeCM ROLLING
-    DDS CATALOG test-catalog.jsonc
-        DEP_FILES deps.jsonc
-        IMPORT spdlog
-    )
+pmm(DDS DEP_FILES deps.jsonc)
 
 # Call it a second time, this will *append* the fmt+1.0.0 to our requirements, not
 # replace the original one from deps.jsonc
-pmm(DDS DEPENDS fmt+1.0.0 IMPORT AUTO)
+pmm(DDS DEPENDS fmt+1.0.0)
 
 if(NOT EXISTS "${PROJECT_BINARY_DIR}/INDEX.lmi")
     message(FATAL_ERROR "No INDEX.lmi was generated")

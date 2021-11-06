@@ -3,3 +3,5 @@ project(TestProject)
 
 include(${PMM_INCLUDE})
 pmm(CONAN DEBUG)
+
+include(CTest)
