@@ -1,4 +1,12 @@
-_pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.5")
+# Regular include_guard() doesn't work because this file may be downloaded and
+# replaced within a single CMake config run.
+get_cmake_property(_was_included _PMM_DDS_CMAKE_INCLUDED)
+if(_was_included)
+    return()
+endif()
+set_property(GLOBAL PROPERTY _PMM_DDS_INCLUDED TRUE)
+
+_pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.6")
 _pmm_set_if_undef(PMM_DDS_URL_BASE "https://github.com/vector-of-bool/dds/releases/download/${PMM_DDS_VERSION}")
 
 if(NOT CMAKE_SCRIPT_MODE_FILE)
@@ -246,8 +254,8 @@ function(_pmm_dds)
     _pmm_log(WARNING "dds support is experimental! Don't rely on this for critical systems!")
     _pmm_parse_args(
         -hardcheck
-        - TOOLCHAIN CATALOG
-        + DEP_FILES DEPENDS IMPORT
+        - TOOLCHAIN
+        + DEP_FILES DEPENDS
         )
 
     _pmm_get_dds_exe(dds_exe)
@@ -266,21 +274,8 @@ function(_pmm_dds)
     set(bdeps_args ${acc_depends})
     foreach(fname IN LISTS acc_dep_files)
         get_filename_component(deps_fpath "${fname}" ABSOLUTE)
-        list(APPEND bdeps_args "--deps=${deps_fpath}")
+        list(APPEND bdeps_args "--deps-file=${deps_fpath}")
     endforeach()
-
-    # The user may specify a catalog file that should be imported for the build.
-    # Otherwise, we'll use the user-local catalog
-    if(ARG_CATALOG)
-        set(catalog_path "${PMM_DIR}/dds-catalog.db")
-        set(catalog_arg "--catalog=${catalog_path}")
-        list(APPEND bdeps_args "${catalog_arg}")
-        get_filename_component(catalog_json_path "${ARG_CATALOG}" ABSOLUTE)
-        _pmm_exec("${dds_exe}" catalog import --json ${catalog_json_path} ${catalog_arg} NO_EAT_OUTPUT)
-        if(_PMM_RC)
-            message(FATAL_ERROR "dds catalog-import of [${ARG_CATALOG}] failed [${_PMM_RC}]")
-        endif()
-    endif()
 
     if(NOT ARG_TOOLCHAIN)
         # If the user didn't specify a toolchain, generate one now based on the
@@ -288,6 +283,8 @@ function(_pmm_dds)
         _pmm_dds_generate_toolchain(ARG_TOOLCHAIN)
     endif()
 
+    set(inc_file "${PROJECT_BINARY_DIR}/_dds-deps.cmake")
+    list(APPEND bdeps_args "--cmake=${inc_file}")
     list(APPEND bdeps_args "--toolchain=${ARG_TOOLCHAIN}")
 
     _pmm_exec(
@@ -298,29 +295,5 @@ function(_pmm_dds)
     if(_PMM_RC)
         message(FATAL_ERROR "DDS failed to build our dependencies [${_PMM_RC}]")
     endif()
-
-    if(IMPORT IN_LIST ARGV)
-        if(NOT COMMAND import_packages)
-            include(libman OPTIONAL RESULT_VARIABLE did_import)
-            if(NOT did_import)
-                message(FATAL_ERROR "pmm(DDS IMPORT): No 'import_packages' command is defined, and no 'libman' module is available")
-            endif()
-        endif()
-        if(ARG_IMPORT STREQUAL "AUTO")
-            if(ARG_DEP_FILES)
-                message(WARNING "DDS IMPORT AUTO does not work properly with DEP_FILES. Packages from the given dep-files will not be imported.")
-            endif()
-            foreach(dep IN LISTS ARG_DEPENDS)
-                if(NOT dep MATCHES "^(.+)[@=\\+\\^~]")
-                    message(SEND_ERROR "Cannot auto-import dependency statement: ${dep}")
-                    continue()
-                endif()
-                import_packages("${CMAKE_MATCH_1}")
-            endforeach()
-        else()
-            foreach(import IN LISTS ARG_IMPORT)
-                import_packages("${import}")
-            endforeach()
-        endif()
-    endif()
+    include("${inc_file}")
 endfunction()
