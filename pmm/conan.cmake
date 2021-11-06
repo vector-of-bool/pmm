@@ -32,6 +32,9 @@ function(_pmm_get_conan_venv py_name py_exe)
 
     # Now create a new virtualenv
     file(REMOVE_RECURSE "${_PMM_CONAN_VENV_DIR}")
+    # Create the parent of the virtualenv directory.
+    get_filename_component(pardir "${_PMM_CONAN_VENV_DIR}" DIRECTORY)
+    file(MAKE_DIRECTORY "${pardir}")
     _pmm_log("${msg} - Create virtualenv")
     _pmm_exec("${py_exe}" -m ${venv_mod} "${_PMM_CONAN_VENV_DIR}")
     if(_PMM_RC)
@@ -436,7 +439,7 @@ function(_pmm_conan_get_settings out)
         if(NOT comp_version MATCHES "${majmin_ver_re}")
             message(FATAL_ERROR "Unable to parse compiler version string: ${comp_version}")
         endif()
-        
+
         set(comp_version_val ${CMAKE_MATCH_1})
         if(comp_version_val VERSION_GREATER_EQUAL 8)
             # Conan uses major version only for clang 8+
