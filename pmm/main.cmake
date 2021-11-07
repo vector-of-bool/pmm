@@ -70,12 +70,19 @@ endmacro()
 function(_pmm_script_main)
     _pmm_parse_script_args(
             -nocheck
-            . /Conan /Help
+            . /Conan /Help /Debug /Verbose
     )
 
     if(ARG_/Help)
         show_cli_help()
         return()
+    endif()
+
+    if(ARG_/Debug)
+        set(PMM_DEBUG TRUE)
+    endif()
+    if(ARG_/Verbose)
+        set(PMM_VERBOSE TRUE)
     endif()
 
     if(ARG_/Conan)
@@ -110,13 +117,21 @@ Available options:
     install it on-the-fly themselves. Add `/Install` to the command line to
     make sure that Conan is present.
 
-    /Uninstall
-        Remove the Conan installation that PMM may have created
-        (necessary for Conan upgrades)
+    /NotManaged
+        Do not use a PMM-managed Conan installation, and instead use one that
+        is already installed in the environment.
 
-    /Install [/Upgrade]
-        Ensure that a Conan executable is installed. If `/Upgrade` is provided,
-        will attempt to upgrade an existing installation
+    /Version
+        Print the Conan version that PMM is using.
+
+    /Uninstall
+        Remove the managed Conan installation that PMM may have created.
+
+    /Install
+        Ensure that the managed Conan executable is installed. If another
+        task is run and Conan has not already been installed, that task will
+        fail. /Install installs lazily and is a no-op if the managed Conan is
+        already installed.
 
     /Where <cookie>
         Print the path to the Conan executable with the given <cookie>
@@ -127,14 +142,6 @@ Available options:
 
         Removes temporary source and build folders in the local conan cache.
 
-    /Clean
-        Run `conan remove * -fsb`.
-
-        Removes temporary source and build folders in the local conan cache.
-
-    /Version
-        Print the Conan version
-
     /EnsureRemotes [<name>[::no_verify] <url> [...]]
         Ensure the given Conan remotes are defined.
 
@@ -143,8 +150,6 @@ Available options:
 
         It must either already exist, or you may pass `/GenProfile` to create it
         on-the-fly.
-
-
 
     /GenProfile [/Lazy]
         Use PMM's Conan-profile generation to write a profile file to the
