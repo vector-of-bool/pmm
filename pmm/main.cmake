@@ -17,8 +17,8 @@ endif()
 # The main function.
 function(_pmm_project_fn)
     _pmm_parse_args(
-            . DEBUG VERBOSE
-            + CONAN VCPKG CMakeCM DDS
+        . DEBUG VERBOSE
+        + CONAN VCPKG CMakeCM DDS
     )
 
     _pmm_generate_cli_scripts(FALSE)
@@ -28,6 +28,13 @@ function(_pmm_project_fn)
     endif()
     if(ARG_VERBOSE)
         set(PMM_VERBOSE TRUE)
+    endif()
+
+    if(ARG_UNPARSED_ARGUMENTS)
+        string(REPLACE ";" ", " unknown "${ARG_UNPARSED_ARGUMENTS}")
+        message(FATAL_ERROR
+            "Unrecognzed arguments: '${unknown}' "
+            "(Check argument spelling and order)")
     endif()
 
     if(DEFINED ARG_CONAN OR "CONAN" IN_LIST ARGV)
@@ -114,7 +121,7 @@ Available options:
     /Where <cookie>
         Print the path to the Conan executable with the given <cookie>
         prepended to the path on the same line.
-        
+
     /Clean
         Run `conan remove * -fsb`.
 
@@ -122,7 +129,7 @@ Available options:
 
     /Clean
         Run `conan remove * -fsb`.
-        
+
         Removes temporary source and build folders in the local conan cache.
 
     /Version
