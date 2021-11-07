@@ -1,4 +1,4 @@
-_pmm_set_if_undef(PMM_CONAN_MIN_VERSION           1.8.0)
+_pmm_set_if_undef(PMM_CONAN_MIN_VERSION           1.30.0)
 _pmm_set_if_undef(PMM_CONAN_MAX_VERSION           1.99999.0)
 _pmm_set_if_undef(PMM_CONAN_WANT_VERSION          "${PMM_CONAN_MIN_VERSION}")
 _pmm_set_if_undef(PMM_CONAN_PIP_INSTALL_ARGS      "conan==${PMM_CONAN_WANT_VERSION}")
