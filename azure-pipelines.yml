@@ -5,31 +5,33 @@
 
 jobs:
   - job: MSVC
+    displayName: MSVC on Windows 2019
     pool:
-      vmImage: vs2017-win2016
+      vmImage: windows-2019
     steps:
       - script: choco install ninja
         displayName: Install Ninja
       - script: >
-          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
-          powershell ./ci.ps1 -ForceMSVC
+          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
+          pwsh ./ci.ps1 -ForceMSVC
         displayName: Run tests
 
   - job: MinGW
+    displayName: MinGW on Windows 2019
     pool:
-      vmImage: vs2017-win2016
+      vmImage: windows-2019
     steps:
       - script: choco install ninja
         displayName: Install Ninja
       - script: >
-          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
-          powershell ./ci.ps1
+          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\Common7\\Tools\\vsdevcmd" -arch=x64 &&
+          pwsh ./ci.ps1
         displayName: Run tests
 
   - job: LinuxDocker
+    displayName: Linux w/ Docker
     pool:
-      vmImage: ubuntu-18.04
-
+      vmImage: ubuntu-20.04
     steps:
       - script: |
           wget https://github.com/Kitware/CMake/releases/download/v3.16.1/cmake-3.16.1-Linux-x86_64.sh -nv -O /tmp/cmake.sh
@@ -39,9 +41,23 @@ jobs:
       - script: pwsh ./ci.ps1 -RunDockerTests
         displayName: Run tests
 
-  - job: macOS
+  - job: macOS_10
+    displayName: macOS 10.15
     pool:
       vmImage: macos-10.15
+    steps:
+      - script: |
+          curl -Ls https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip -o ninja-mac.zip
+          unzip ninja-mac.zip
+          sudo cp -v ninja /usr/local/bin/
+        displayName: Prepare System
+      - script: env CXX=g++-8 CC=gcc-8 pwsh ./ci.ps1
+        displayName: Run tests
+
+  - job: macOS_11
+    displayName: macOS 11
+    pool:
+      vmImage: macos-11
     steps:
       - script: |
           curl -Ls https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-mac.zip -o ninja-mac.zip
