@@ -4,7 +4,6 @@ project(pmm VERSION 1.5.1)
 set(PMM_ALWAYS_DOWNLOAD TRUE)
 set(PMM_URL "file://${PROJECT_SOURCE_DIR}/pmm")
 set(PMM_DEBUG TRUE)
-set(PMM_CONAN_IGNORE_EXTERNAL_CONAN TRUE)
 include(pmm.cmake)
 pmm(CONAN BINCRAFTERS)
 
