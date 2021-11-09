@@ -30,13 +30,13 @@ endfunction()
 #
 # This macro makes use of some very horrible aspects of CMake macros:
 # - Values appear the caller's scope, so no need to set(PARENT_SCOPE)
-# - The ${${}ARGV} eldritch horror evaluates to the ARGV *OF THE CALLER*, while
-#   ${ARGV} evaluates to the macro's own ARGV value. This is because ${${}ARGV}
+# - The ${${}ARGN} eldritch horror evaluates to the ARGN *OF THE CALLER*, while
+#   ${ARGN} evaluates to the macro's own ARGN value. This is because ${${}ARGN}
 #   inhibits macro argument substitution. It is painful, but it makes this magic
 #   work.
 macro(_pmm_parse_args)
-    cmake_parse_arguments(_ "-nocheck;-hardcheck" "" ".;-;+" "${ARGV}")
-    set(__arglist "${${}ARGV}")
+    cmake_parse_arguments(_ "-nocheck;-hardcheck" "" ".;-;+" "${ARGN}")
+    set(__arglist "${${}ARGN}")
     _pmm_parse_arglist("${__.}" "${__-}" "${__+}")
 endmacro()
 
