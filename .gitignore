@@ -2,6 +2,7 @@ build/
 .python-version
 _pmm/
 ci-build/
-\.idea/
-
+_build/
+.idea/
+.vscode/
 cmake-build-debug/
