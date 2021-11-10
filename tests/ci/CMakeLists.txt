@@ -17,6 +17,9 @@ function(add_pmm_ci_test name)
             -D "SOURCE_DIR=${dirpath}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/RunCITest.cmake"
         )
+    if(name MATCHES "vcpkg")
+        set_property(TEST "pmm.test.ci.${name}" PROPERTY RESOURCE_LOCK vcpkg-build)
+    endif()
 endfunction()
 
 foreach(subdir conan vcpkg cmcm dds vcpkg-overlay)
