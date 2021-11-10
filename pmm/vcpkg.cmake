@@ -149,28 +149,34 @@ endfunction()
 
 function(_pmm_vcpkg_copy_custom_ports ports_list)
     foreach(port IN LISTS ports_list)
+        # Port name is based on the directory name
         get_filename_component(port_name ${port} NAME)
         if(NOT EXISTS "${port}/portfile.cmake")
             message(FATAL_ERROR "Failed find portfile in ${port}!")
         endif()
-        set(port_location "${vcpkg_inst_dir}/ports/${port_name}")
-        if(EXISTS "${port_location}" AND NOT EXISTS "${port_location}/CUSTOM_PORT_FROM_PMM.txt")
-          message(WARNING "Portfile already included by default!")
-        elseif(NOT EXISTS "${port_location}/CUSTOM_PORT_FROM_PMM.txt")
-          file(MAKE_DIRECTORY "${port_location}")
-          file(WRITE "${port_location}/CUSTOM_PORT_FROM_PMM.txt" "This is a custom port copied by PMM")
+
+        # Prepare a directory for this port
+        set(port_dest_dir "${__vcpkg_inst_dir}/ports/${port_name}")
+        if(EXISTS "${port_dest_dir}" AND NOT EXISTS "${port_dest_dir}/CUSTOM_PORT_FROM_PMM.txt")
+            message(WARNING "Portfile already included by default!")
+        elseif(NOT EXISTS "${port_dest_dir}/CUSTOM_PORT_FROM_PMM.txt")
+            file(MAKE_DIRECTORY "${port_dest_dir}")
+            # Use this stamp file to tell others/ourself this is a Port copied by PMM
+            file(WRITE "${port_dest_dir}/CUSTOM_PORT_FROM_PMM.txt" "This is a custom port copied by PMM")
         endif()
+
+        # Copy all files from the port:
         file(GLOB port_files "${port}/*")
-        foreach(port_file IN LISTS port_files)
-          get_filename_component(port_file_name ${port_file} NAME)
-          set(port_file_location "${port_location}/${port_file_name}")
-          file(TIMESTAMP ${port_file_location} port_file_location_ts)
-          file(TIMESTAMP ${port_file} port_file_ts)
-          _pmm_log(DEBUG "Timestamp: ${port_file_location_ts} for ${port_file_location}")
-          _pmm_log(DEBUG "Timestamp: ${port_file_ts} for ${port_file}")
+        foreach(port_file_src IN LISTS port_files)
+          get_filename_component(port_file_name ${port_file_src} NAME)
+          set(port_file_dest "${port_dest_dir}/${port_file_name}")
+          file(TIMESTAMP ${port_file_dest} port_file_location_ts)
+          file(TIMESTAMP ${port_file_src} port_file_ts)
+          _pmm_log(DEBUG "Timestamp: ${port_file_location_ts} for ${port_file_dest}")
+          _pmm_log(DEBUG "Timestamp: ${port_file_ts} for ${port_file_src}")
           if(NOT "${port_file_ts}" STREQUAL "${port_file_location_ts}")
-              _pmm_log(VERBOSE "${port_name}: Copying ${port_file} to ${port_file_location}")
-              file(COPY "${port_file}" DESTINATION "${vcpkg_inst_dir}/ports/${port_name}/")
+              _pmm_log(VERBOSE "${port_name}: Copying ${port_file_src} to ${port_file_dest}")
+              file(COPY "${port_file_src}" DESTINATION "${__vcpkg_inst_dir}/ports/${port_name}/")
           else()
               _pmm_log(VERBOSE "${port_name}: ${port_file_name} is up to date")
           endif()
@@ -181,8 +187,7 @@ endfunction()
 function(_pmm_vcpkg)
     _pmm_parse_args(
         - REVISION TRIPLET
-        + REQUIRES PORTS
-        - OVERLAY        
+        + REQUIRES PORTS OVERLAY
         )
 
     if(NOT DEFINED ARG_REVISION)
@@ -191,32 +196,38 @@ function(_pmm_vcpkg)
     if(NOT DEFINED ARG_TRIPLET)
         _pmm_vcpkg_default_triplet(ARG_TRIPLET)
     endif()
-    if(DEFINED ARG_OVERLAY)
-        set(PMM_VCPKG_OVERLAY "--overlay-ports=${ARG_OVERLAY}")
-    elseif()
-        set(PMM_VCPKG_OVERLAY "")
-    endif()   
+
     _pmm_log(VERBOSE "Using vcpkg target triplet ${ARG_TRIPLET}")
-    get_filename_component(vcpkg_inst_dir "${_PMM_USER_DATA_DIR}/vcpkg-${ARG_REVISION}" ABSOLUTE)
-    _pmm_log(DEBUG "vcpkg directory is ${vcpkg_inst_dir}")
+    get_filename_component(__vcpkg_inst_dir "${_PMM_USER_DATA_DIR}/vcpkg-${ARG_REVISION}" ABSOLUTE)
+    _pmm_log(DEBUG "vcpkg directory is ${__vcpkg_inst_dir}")
     set(prev "${PMM_VCPKG_EXECUTABLE}")
-    _pmm_ensure_vcpkg("${vcpkg_inst_dir}" "${ARG_REVISION}")
+
+    _pmm_ensure_vcpkg("${__vcpkg_inst_dir}" "${ARG_REVISION}")
     if(NOT prev STREQUAL PMM_VCPKG_EXECUTABLE)
         _pmm_log("Using vcpkg executable: ${PMM_VCPKG_EXECUTABLE}")
     endif()
+
     if(DEFINED ARG_PORTS)
         _pmm_vcpkg_copy_custom_ports("${ARG_PORTS}")
     endif()
+
+    set(vcpkg_install_args
+        --triplet "${ARG_TRIPLET}"
+        ${ARG_REQUIRES}
+        )
+
+    foreach(overlay IN LISTS ARG_OVERLAY)
+        get_filename_component(overlay "${overlay}" ABSOLUTE)
+        list(APPEND vcpkg_install_args "--overlay-ports=${overlay}")
+    endforeach()
+
     if(ARG_REQUIRES)
         _pmm_log("Installing requirements with vcpkg")
         set(cmd ${CMAKE_COMMAND} -E env
-                VCPKG_ROOT=${vcpkg_inst_dir}
+                VCPKG_ROOT=${__vcpkg_inst_dir}
                 CC=${CMAKE_C_COMPILER}
                 CXX=${CMAKE_CXX_COMPILER}
-            "${PMM_VCPKG_EXECUTABLE}" install
-                --triplet "${ARG_TRIPLET}"
-                ${ARG_REQUIRES}
-                ${PMM_VCPKG_OVERLAY}
+            "${PMM_VCPKG_EXECUTABLE}" install ${vcpkg_install_args}
             )
         _pmm_exec(${cmd} NO_EAT_OUTPUT)
         if(_PMM_RC)
@@ -225,6 +236,6 @@ function(_pmm_vcpkg)
             _pmm_log(DEBUG "vcpkg output:\n${_PMM_OUTPUT}")
         endif()
     endif()
-    set(_PMM_INCLUDE "${vcpkg_inst_dir}/scripts/buildsystems/vcpkg.cmake" PARENT_SCOPE)
+    set(_PMM_INCLUDE "${__vcpkg_inst_dir}/scripts/buildsystems/vcpkg.cmake" PARENT_SCOPE)
     _pmm_generate_shim(vcpkg "${PMM_VCPKG_EXECUTABLE}")
 endfunction()
