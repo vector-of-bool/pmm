@@ -4,7 +4,7 @@ project(TestProject)
 message(STATUS "PMM URL is ${PMM_URL}")
 include(${PMM_INCLUDE})
 pmm(VCPKG
-        REVISION 2020.06
+        REVISION 2021.05.12
         REQUIRES spdlog
     DEBUG
     )

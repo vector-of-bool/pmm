@@ -4,7 +4,7 @@ project(TestProject)
 message(STATUS "PMM URL is ${PMM_URL}")
 include(${PMM_INCLUDE})
 pmm(VCPKG
-        REVISION 2021.04.30
+        REVISION 2021.05.12
         REQUIRES spdlog-pmm[test-feature]
         OVERLAY custom-ports/ custom-ports2/
     DEBUG

@@ -12,7 +12,7 @@ include(${PMM_INCLUDE})
 pmm(
     DEBUG
     VCPKG
-        REVISION 2020.07
+        REVISION 2021.05.12
         REQUIRES fmt
     )
 
