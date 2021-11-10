@@ -85,7 +85,7 @@ function(_pmm_conan_venv_install py_name py_exe)
         DOC "Path to the PMM-managed Conan executable"
         )
     if(NOT PMM_CONAN_EXECUTABLE)
-        _pmm_log(WARNING "Conan executable was not found acter Conan installation. Huh??")
+        _pmm_log(WARNING "Conan executable was not found after Conan installation. Huh??")
         _pmm_log("${msg} - Fail: No conan executable in Conan installation?")
     else()
         _pmm_log("${msg} - Installed: ${PMM_CONAN_EXECUTABLE}")
