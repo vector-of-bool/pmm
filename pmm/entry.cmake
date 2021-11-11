@@ -1,3 +1,7 @@
+# Set the policies for the range of supported CMake versions
+cmake_policy(PUSH)
+cmake_minimum_required(VERSION 3.13.0...3.21.4)
+
 # Unset variables that may be affected by a version change
 if(NOT PMM_VERSION STREQUAL PMM_PRIOR_VERSION)
     foreach(var IN ITEMS PMM_CONAN_EXECUTABLE)
@@ -93,3 +97,6 @@ _pmm_check_updates()
 if(CMAKE_SCRIPT_MODE_FILE)
     _pmm_script_main()
 endif()
+
+# Restore prior policy settings before returning to our includer
+cmake_policy(POP)

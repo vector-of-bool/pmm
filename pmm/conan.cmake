@@ -814,7 +814,7 @@ function(_pmm_conan_gen_profile destpath be_lazy)
     # Generate a small project
     file(MAKE_DIRECTORY "${tmpdir}")
     string(CONFIGURE [[
-        cmake_minimum_required(VERSION 3.7)
+        cmake_minimum_required(VERSION 3.13.0)
         project(Dummy)
         set(PMM_DIR "@PMM_DIR@")
         include("@CMAKE_SCRIPT_MODE_FILE@")

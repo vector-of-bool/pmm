@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-
 function(_pmm_read_script_argv var)
     set(got_p FALSE)
     set(got_script FALSE)
