@@ -199,7 +199,7 @@ endfunction()
 function(_pmm_vcpkg)
     _pmm_parse_args(
         - REVISION TRIPLET
-        + REQUIRES PORTS OVERLAY
+        + REQUIRES PORTS OVERLAY_PORTS OVERLAY_TRIPLETS
         )
 
     if(NOT DEFINED ARG_REVISION)
@@ -229,9 +229,14 @@ function(_pmm_vcpkg)
         ${ARG_REQUIRES}
         )
 
-    foreach(overlay IN LISTS ARG_OVERLAY)
+    foreach(overlay IN LISTS ARG_OVERLAY_PORTS)
         get_filename_component(overlay "${overlay}" ABSOLUTE)
         list(APPEND vcpkg_install_args "--overlay-ports=${overlay}")
+    endforeach()
+
+    foreach(triplet IN LISTS ARG_OVERLAY_TRIPLETS)
+        get_filename_component(triplet "${triplet}" ABSOLUTE)
+        list(APPEND vcpkg_install_args "--overlay-triplets=${triplet}")
     endforeach()
 
     if(ARG_REQUIRES)
