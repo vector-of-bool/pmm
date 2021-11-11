@@ -1,10 +1,10 @@
-_pmm_set_if_undef(PMM_CONAN_MIN_VERSION           1.40.4)
-_pmm_set_if_undef(PMM_CONAN_MAX_VERSION           1.99999.0)
-_pmm_set_if_undef(PMM_CONAN_WANT_VERSION          "${PMM_CONAN_MIN_VERSION}")
-_pmm_set_if_undef(PMM_CONAN_PIP_INSTALL_ARGS      "conan==${PMM_CONAN_WANT_VERSION}")
-_pmm_set_if_undef(PMM_CONAN_MANAGED               TRUE)
-_pmm_set_if_undef(PMM_CONAN_FORCE_REINSTALL       FALSE)
-_pmm_set_if_undef(PMM_CONAN_MANAGED_NO_INSTALL    FALSE)
+pmm_option(PMM_CONAN_MIN_VERSION           1.40.4)
+pmm_option(PMM_CONAN_MAX_VERSION           1.99999.0)
+pmm_option(PMM_CONAN_WANT_VERSION          "${PMM_CONAN_MIN_VERSION}")
+pmm_option(PMM_CONAN_PIP_INSTALL_ARGS      "conan==${PMM_CONAN_WANT_VERSION}")
+pmm_option(PMM_CONAN_MANAGED               TRUE)
+pmm_option(PMM_CONAN_FORCE_REINSTALL       FALSE)
+pmm_option(PMM_CONAN_MANAGED_NO_INSTALL    FALSE)
 
 set(PMM_CONAN_CPPSTD_DEPRECATE_VERSION 1.15.0 CACHE INTERNAL "Conan version to switch cppstd to compiler.cppstd")
 option(PMM_CMAKE_MULTI "Use the cmake_multi generator for Conan" ON)
@@ -533,7 +533,7 @@ function(_pmm_conan_run_install _build_type _generator_name )
 
     _pmm_conan_create_profile(${_build_type})
 
-    _pmm_set_if_undef(ARG_BUILD missing)
+    pmm_option(ARG_BUILD missing)
     set(conan_args --profile "${profile_file}")
     list(APPEND conan_args --generator ${_generator_name} --build ${ARG_BUILD})
     set(conan_install_cmd

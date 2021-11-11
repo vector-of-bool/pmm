@@ -1,3 +1,7 @@
+if(PMM_IGNORE_NEW_VERSION)
+    return()
+endif()
+
 function(_pmm_changes version)
     if(PMM_VERSION VERSION_LESS version)
         message(STATUS "[pmm]  - Changes in ${version}:")
@@ -87,7 +91,7 @@ _pmm_changes(1.4.3
         "Improve: Update to DDS alpha.4"
         )
 _pmm_changes(1.5.0
-        "New: Support the 'cmake_multi' generator with Conan"
+        "New: Support the 'cmake_multi' generator with Conan (experimental)"
         "New: /Conan /Clean to run 'conan remove -fsb *'"
         "New: IMPORT argument to pmm(DDS) will automatically call import_packages() in some cases"
         "New: Running pmm() will generate pmm-cli.bat and pmm-cli.sh shell scripts to manage PMM"
@@ -106,6 +110,6 @@ _pmm_changes(1.5.1
 message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
 message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
 
-if (NOT DEFINED _PMM_BOOTSTRAP_VERSION OR _PMM_BOOTSTRAP_VERSION LESS 2)
+if(NOT DEFINED _PMM_BOOTSTRAP_VERSION OR _PMM_BOOTSTRAP_VERSION LESS 4)
     message(STATUS "[pmm] NOTE: pmm.cmake has changed! Please download a new pmm.cmake from the PMM repository.")
-endif ()
+endif()

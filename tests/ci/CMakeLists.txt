@@ -6,7 +6,7 @@ function(add_pmm_ci_test name)
         - GENERATOR SOURCE_DIR
     )
     get_filename_component(dirpath "${ARG_SOURCE_DIR}" ABSOLUTE)
-    _pmm_set_if_undef(ARG_GENERATOR "${CMAKE_GENERATOR}")
+    pmm_option(ARG_GENERATOR "${CMAKE_GENERATOR}")
     add_test(
         NAME "pmm.test.ci.${name}"
         COMMAND "${CMAKE_COMMAND}"
