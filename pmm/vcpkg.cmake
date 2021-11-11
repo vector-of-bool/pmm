@@ -1,5 +1,14 @@
 # Download vcpkg at revision `rev` and place the built result in `dir`
 function(_pmm_ensure_vcpkg dir rev)
+    _pmm_verbose_lock(
+        "${dir}" DIRECTORY
+        FIRST_MESSAGE "Another CMake instance is bootstrapping vcpkg. Please wait..."
+        FAIL_MESSAGE "Unable to obtain vcpkg bootstrapping lock. Check if there is a stuck process holding it open."
+        RESULT_VARIABLE did_lock
+        )
+    if(NOT did_lock)
+        message(FATAL_ERROR "Unable to obtain exclusive lock on directory ${_PMM_CONAN_MANAGED_VENV_DIR}. Abort.")
+    endif()
     # The final executable is deterministically placed:
     set(PMM_VCPKG_EXECUTABLE "${dir}/vcpkg${CMAKE_EXECUTABLE_SUFFIX}"
         CACHE FILEPATH
@@ -7,9 +16,10 @@ function(_pmm_ensure_vcpkg dir rev)
         FORCE
         )
     _pmm_log(DEBUG "Expecting vcpkg executable at ${PMM_VCPKG_EXECUTABLE}")
-    # Check if the given directory already exists, which means we've already
+    # Check if the vcpkg exe already exists, which means we've already
     # bootstrapped and installed it
-    if(IS_DIRECTORY "${dir}")
+    if(EXISTS "${PMM_VCPKG_EXECUTABLE}")
+        file(LOCK "${dir}" DIRECTORY RELEASE)
         return()
     endif()
     # We do the build in a temporary directory, then rename that temporary dir
@@ -81,6 +91,8 @@ function(_pmm_ensure_vcpkg dir rev)
     _pmm_log("vcpkg successfully bootstrapped to ${dir}")
     # Fix for "Could not detect vcpkg-root."
     execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
+    # Release the exclusive lock on the directory we obtained at the top of this fn
+    file(LOCK "${dir}" DIRECTORY RELEASE)
 endfunction()
 
 function(_pmm_vcpkg_default_triplet out)

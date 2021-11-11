@@ -132,6 +132,7 @@ function(_pmm_get_var_from_file filepath varname)
     set(${varname} ${propt} PARENT_SCOPE)
 endfunction()
 
+
 function(_pmm_generate_cli_scripts force)
     # The sh scipt
     if(NOT EXISTS "${CMAKE_BINARY_DIR}/pmm-cli.sh" OR ${force})
@@ -148,6 +149,7 @@ function(_pmm_generate_cli_scripts force)
     endif()
 endfunction()
 
+
 function(_pmm_generate_shim name executable)
     # The sh scipt
     if (NOT EXISTS "${CMAKE_BINARY_DIR}/${name}.sh")
@@ -162,4 +164,48 @@ function(_pmm_generate_shim name executable)
     if (NOT EXISTS "${CMAKE_BINARY_DIR}/${name}.bat")
         file(WRITE "${CMAKE_BINARY_DIR}/${name}.bat" "@echo off\n\"${executable}\" %*")
     endif ()
+endfunction()
+
+
+function(_pmm_verbose_lock fpath)
+    _pmm_parse_args(
+        . DIRECTORY
+        - FIRST_MESSAGE FAIL_MESSAGE RESULT_VARIABLE
+        )
+    set(arg_dir)
+    if(ARG_DIRECTORY)
+        set(arg_dir "DIRECTORY")
+    endif()
+    set("${ARG_RESULT_VARIABLE}" TRUE PARENT_SCOPE)
+    file(
+        LOCK "${fpath}" ${arg_dir}
+        GUARD PROCESS
+        TIMEOUT 3
+        RESULT_VARIABLE lock_res
+        )
+    if(NOT lock_res)
+        return()
+    endif()
+    # Couldn't get the lock
+    _pmm_log("${ARG_FIRST_MESSAGE}")
+    file(
+        LOCK "${dir}" ${arg_dir}
+        GUARD PROCESS
+        TIMEOUT 60
+        RESULT_VARIABLE lock_res
+        )
+    if(NOT lock_res)
+        return()
+    endif()
+    _pmm_log("Unable to obtain lock after 60 seconds. We'll try for one more minute...")
+    file(
+        LOCK "${_PMM_CONAN_MANAGED_VENV_DIR}" ${arg_dir}
+        GUARD PROCESS
+        TIMEOUT 60
+        RESULT_VARIABLE lock_res
+        )
+    if(lock_res)
+        message(WARNING "${ARG_FAIL_MESSAGE}")
+        set("${ARG_RESULT_VARIABLE}" FALSE PARENT_SCOPE)
+    endif()
 endfunction()

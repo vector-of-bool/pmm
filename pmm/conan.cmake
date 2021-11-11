@@ -113,32 +113,14 @@ function(_pmm_conan_managed_ensure_installed)
 
     # Before we continue, lock access to the virtualenv
     _pmm_log(DEBUG "PMM Conan venv directory is [${_PMM_CONAN_MANAGED_VENV_DIR}]")
-    file(
-        LOCK "${_PMM_CONAN_MANAGED_VENV_DIR}" DIRECTORY
-        GUARD FUNCTION
-        TIMEOUT 3
-        RESULT_VARIABLE lock_res
+    _pmm_verbose_lock(
+        "${_PMM_CONAN_MANAGED_VENV_DIR}" DIRECTORY
+        FIRST_MESSAGE "Anohter CMake instance is installing Conan. Please wait..."
+        FAIL_MESSAGE "Unable to obtain the virtualenv lock. Check if there is a stuck process holding it open."
+        RESULT_VARIABLE did_lock
         )
-    if(lock_res)
-        _pmm_log("Another CMake instance is installing Conan. Please wait...")
-        file(
-            LOCK "${_PMM_CONAN_MANAGED_VENV_DIR}" DIRECTORY
-            GUARD FUNCTION
-            TIMEOUT 60
-            RESULT_VARIABLE lock_res
-            )
-        if(lock_res)
-            _pmm_log("Unable to obtain lock after 60 seconds. We'll try for one more minute...")
-            file(
-                LOCK "${_PMM_CONAN_MANAGED_VENV_DIR}" DIRECTORY
-                GUARD FUNCTION
-                TIMEOUT 60
-                RESULT_VARIABLE lock_res
-                )
-            if(lock_res)
-                message(FATAL_ERROR "Unable to obtain exclusive lock on directory ${_PMM_CONAN_MANAGED_VENV_DIR}. Abort.")
-            endif()
-        endif()
+    if(NOT did_lock)
+        message(FATAL_ERROR "Unable to obtain exclusive lock on directory ${_PMM_CONAN_MANAGED_VENV_DIR}. Abort.")
     endif()
 
     if(NOT must_reinstall)
@@ -173,11 +155,13 @@ function(_pmm_conan_managed_ensure_installed)
     endif()
 
     if(NOT must_reinstall)
+        file(LOCK "${_PMM_CONAN_MANAGED_VENV_DIR}" DIRECTORY RELEASE)
         return()
     endif()
 
     if(PMM_CONAN_MANAGED_NO_INSTALL)
         # Caller has requested that we do not run an install.
+        file(LOCK "${_PMM_CONAN_MANAGED_VENV_DIR}" DIRECTORY RELEASE)
         return()
     endif()
 
@@ -193,6 +177,7 @@ function(_pmm_conan_managed_ensure_installed)
     if(NOT PMM_CONAN_EXECUTABLE)
         message(FATAL_ERROR "We failed to install Conan in a new virtualenv.")
     endif()
+    file(LOCK "${_PMM_CONAN_MANAGED_VENV_DIR}" DIRECTORY RELEASE)
 endfunction()
 
 
