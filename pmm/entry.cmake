@@ -2,6 +2,12 @@
 cmake_policy(PUSH)
 cmake_minimum_required(VERSION 3.13.0...3.21.4)
 
+if(NOT DEFINED _PMM_BOOTSTRAP_VERSION OR _PMM_BOOTSTRAP_VERSION LESS 4)
+    message(FATAL_ERROR
+            "Using PMM ${PMM_VERSION} requires updating the pmm.cmake bootstrap script. "
+            "Visit the PMM repository to obtain a new copy of pmm.cmake for your project.")
+endif()
+
 # Unset variables that may be affected by a version change
 if(NOT PMM_VERSION STREQUAL PMM_PRIOR_VERSION)
     foreach(var IN ITEMS PMM_CONAN_EXECUTABLE)
