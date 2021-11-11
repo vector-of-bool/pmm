@@ -5,12 +5,12 @@ message(STATUS "PMM URL is ${PMM_URL}")
 include(${PMM_INCLUDE})
 pmm(VCPKG
         REVISION 2021.05.12
-        REQUIRES spdlog-pmm[test-feature]
+        REQUIRES nlohmann-json[test-feature]
         OVERLAY custom-ports/ custom-ports2/
     DEBUG
     )
 
-find_package(spdlog REQUIRED CONFIG)
+find_package(nlohmann_json REQUIRED CONFIG)
 
 add_executable(dummy main.cpp)
-target_link_libraries(dummy PRIVATE spdlog::spdlog fmt::fmt)
+target_link_libraries(dummy PRIVATE nlohmann_json::nlohmann_json)

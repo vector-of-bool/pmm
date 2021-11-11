@@ -1,7 +1,3 @@
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
-int main() {
-    auto console = spdlog::stdout_color_mt("console");
-    console->info("Hello!");
-}
+int main() { auto array = nlohmann::json::parse("[1, 2, 3]"); }
