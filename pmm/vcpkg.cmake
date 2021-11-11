@@ -1,7 +1,7 @@
 # Download vcpkg at revision `rev` and place the built result in `dir`
 function(_pmm_ensure_vcpkg dir rev)
     _pmm_verbose_lock(
-        "${dir}" DIRECTORY
+        "${dir}.lock"
         FIRST_MESSAGE "Another CMake instance is bootstrapping vcpkg. Please wait..."
         FAIL_MESSAGE "Unable to obtain vcpkg bootstrapping lock. Check if there is a stuck process holding it open."
         RESULT_VARIABLE did_lock
@@ -19,7 +19,7 @@ function(_pmm_ensure_vcpkg dir rev)
     # Check if the vcpkg exe already exists, which means we've already
     # bootstrapped and installed it
     if(EXISTS "${PMM_VCPKG_EXECUTABLE}")
-        file(LOCK "${dir}" DIRECTORY RELEASE)
+        file(LOCK "${dir}.lock" RELEASE)
         return()
     endif()
     # We do the build in a temporary directory, then rename that temporary dir
@@ -92,7 +92,7 @@ function(_pmm_ensure_vcpkg dir rev)
     # Fix for "Could not detect vcpkg-root."
     execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
     # Release the exclusive lock on the directory we obtained at the top of this fn
-    file(LOCK "${dir}" DIRECTORY RELEASE)
+    file(LOCK "${dir}.lock" RELEASE)
 endfunction()
 
 function(_pmm_vcpkg_default_triplet out)
