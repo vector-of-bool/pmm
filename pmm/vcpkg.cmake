@@ -225,6 +225,7 @@ function(_pmm_vcpkg)
 
     set(vcpkg_install_args
         --triplet "${ARG_TRIPLET}"
+        --recurse
         ${ARG_REQUIRES}
         )
 
