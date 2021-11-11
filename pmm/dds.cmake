@@ -260,6 +260,8 @@ function(_pmm_dds)
 
     _pmm_get_dds_exe(dds_exe)
 
+    _pmm_generate_shim(dds "${dds_exe}")
+
     # The user may call pmm(DDS) multiple times, in which case we append to the
     # dependencies as we import them, rather than replacing the libman index
     # with the new set of dependencies.
