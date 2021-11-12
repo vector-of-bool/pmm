@@ -5,6 +5,7 @@ function(_pmm_ensure_vcpkg dir rev)
         FIRST_MESSAGE "Another CMake instance is bootstrapping vcpkg. Please wait..."
         FAIL_MESSAGE "Unable to obtain vcpkg bootstrapping lock. Check if there is a stuck process holding it open."
         RESULT_VARIABLE did_lock
+        LAST_WAIT_DURATION 240
         )
     if(NOT did_lock)
         message(FATAL_ERROR "Unable to obtain exclusive lock on directory ${_PMM_CONAN_MANAGED_VENV_DIR}. Abort.")
