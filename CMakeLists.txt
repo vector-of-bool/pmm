@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.10)
-project(pmm VERSION 1.5.1)
+cmake_minimum_required(VERSION 3.13)
+project(pmm VERSION 2.0.0)
 
 include(latest-version.cmake)
 include(changelog.cmake)
