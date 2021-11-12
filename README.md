@@ -5,82 +5,85 @@ PMM is a module for CMake that manages... package managers.
 ## Wha- Why?
 
 People hate installing new software. Especially when they already have a
-perfectly working tool present. PMM uses the CMake scripting
-language to manage external packaging tools. PMM will automatically
-download, install, and control package managers from within your CMake
-project.
+perfectly working tool present. PMM uses the CMake scripting language to manage
+external packaging tools. PMM will automatically download, install, and control
+package managers from within your CMake project.
 
-(As you are reading this, only Conan and VCPKG are supported.)
+(As you are reading this, only Conan, vcpkg, CMakeCM, and dds are supported.)
 
 ## But This is Just *Another* Tool I have to Manage!
 
 Never fear! PMM is the lowest-maintenance software you will ever use.
+
 
 ## How Do I Use PMM?
 
 Using PMM is simple:
 
 1. Download the `pmm.cmake` file (available at the top level of this
-   respository), and place it at the top level of your repository
-   (alongside your `CMakeLists.txt`).
+   respository), and place it at the top level of your repository (alongside
+   your `CMakeLists.txt`).
 2. In your `CMakeLists.txt`, add a line `include(pmm.cmake)`.
 3. Call the `pmm()` CMake function.
 
 That's it! The `pmm.cmake` file is just 23 significant lines. Take a look inside
 if you doubt.
 
+
 ## Wait... It's Downloading a Bunch of Stuff!
 
-Precisely! `pmm.cmake` is just a bootstrapper for the real PMM code, which
-can be found in the `pmm/` directory in the repository. The content is
-served over HTTPS from the `gh-pages` branch of the PMM repository, so it is all publicly visible.
+Precisely! `pmm.cmake` is just a bootstrapper for the real PMM code, which can
+be found in the `pmm/` directory in the repository. The content is served over
+HTTPS from the `gh-pages` branch of the PMM repository, so it is all publicly
+visible.
+
 
 ## I Don't Want to Automatically Download and Run Code from the Internet
 
 Great! I sympathize, but remember: If you run `apt`, `yum`, `pip`, or even
-`conan`, you are automatically downloading and running code from the
+`conan` and `vcpkg`, you are automatically downloading and running code from the
 internet. It's all about whose code you *trust*.
 
-Even still, you can host the PMM code yourself: Download the `pmm/`
-directory as you want it, and modify the `pmm.cmake` script to download
-from your alternate location (eg, a corporate engineering intranet server).
+Even still, you can host the PMM code yourself: Download the `pmm/` directory as
+you want it, and modify the `pmm.cmake` script to download from your alternate
+location (eg, a corporate engineering intranet server).
+
 
 ## Will PMM Updates Silently Break my Build?
 
-Nope. `pmm.cmake` will never automatically change the version of PMM that
-it uses, and the files served will never be modified in-place: New versions
-will be *added,* but old versions will remain unmodified.
+Nope. `pmm.cmake` will never automatically change the version of PMM that it
+uses, and the files served will never be modified in-place: New versions will be
+*added,* but old versions will remain unmodified.
 
 PMM will notify you if a new version is available, but it won't be annoying
 about it, and you can always disable this nagging by setting
 `PMM_IGNORE_NEW_VERSION` before including `pmm.cmake`.
+
 
 ## How do I Change the PMM Version?
 
 There are two ways:
 
 1. Set `PMM_VERSION` before including the `pmm.cmake` script.
-2. Modify the `PMM_VERSION_INIT` value at the top of `pmm.cmake`.
+2. Modify the `PMM_VERSION_INIT` value near the top of `pmm.cmake`.
 
 Prefer (1) for conditional/temporary version changes, and (2) for permanent
 version changes.
+
 
 ## How do I Change the Download Location for PMM?
 
 For permanent changes, set `PMM_URL` and/or `PMM_URL_BASE` in `pmm.cmake`.
 For temporary changes, set `PMM_URL` before including `pmm.cmake`
 
+
 # The `pmm()` Function
 
-The only interface to PMM (after including `pmm.cmake`) is the `pmm()`
-CMake function. Using it is very simple. At the time or writing, `pmm()`
-only supports Conan and vcpkg, but other packaging solutions may be supported
-in the future.
-
-The `VERBOSE` and `DEBUG` options enable verbose and debug logging,
-respectively. You may set `PMM_{DEBUG,VERBOSE}` before `include(pmm.cmake)` to
-enable these options globally and see information about the PMM bootstrapping
-process.
+The only interface to PMM (after including `pmm.cmake`) is the `pmm()` CMake
+function. Using it is very simple. The `VERBOSE` and `DEBUG` options enable
+verbose and debug logging, respectively. You may set `PMM_{DEBUG,VERBOSE}`
+before `include(pmm.cmake)` to enable these options globally and see information
+about the PMM bootstrapping process.
 
 The `pmm()` signature:
 
@@ -90,53 +93,58 @@ pmm(
     [VERBOSE]
     # Enable debug logging (implies VERBOSE)
     [DEBUG]
+
     # Use Conan
     [CONAN
         # Set additional --setting flags
         [SETTINGS ...]
         # Set additional --option flags
         [OPTIONS ...]
+        # Set environment options
+        [ENV ...]
         # Set the --build option. (Default is `missing`)
         [BUILD <policy>]
         # Ensure remotes are present before installing
         [REMOTES [<name>[::no_verify] <url> [...]]]
         # Enable the Bincrafters repository
         [BINCRAFTERS]
-        # Enable the conan-community repository
-        [COMMUNITY]
+        # Tell PMM about additional files that affect the result of 'conan install'
+        [INSTALL_DEPENDS ...]
     ]
+
     # Use vcpkg
     [VCPKG
         # Specify the revision of vcpkg that you want to use (required)
         REVISION <rev>
+        # Specify the triplet
+        [TRIPLET <triplet>]
         # Ensure the given packages are installed using vcpkg
         [REQUIRES [req [...]]]
         # Copy custom ports to the vcpkg ports directory
         [PORTS [dirpath [...]]]
+        # Set port overlay directories
+        [OVERLAY_PORTS [dirpath [...]]]
+        # Set triplet overlay directories
+        [OVERLAY_TRIPLETS [dirpath [...]]]
     ]
+
     # Use CMakeCM
     [CMakeCM
         # Either use the latest release, or specify a specific base URL to
         # download from
         {ROLLING | FROM <base-url>}
     ]
+
     # Use dds
     [DDS
         # Specify a toolchain. Given as the --toolchain argument to `build-deps`.
         # If not specified, one will be generated automatically based on the
         # current CMake settings.
         [TOOLCHAIN <toolchain>]
-        # Give a path to a catalog json5 file to import before doing dependency
-        # resolution. If not provided, the user-local catalog will be used.
-        [CATALOG <catalog-json-path>]
         # List of dependency files. Given as --deps to `build-deps`.
         [DEP_FILES [filepath [...]]]
         # List of direct dependency strings.
         [DEPENDS [dep [...]]]
-        # Call 'import_packages()' on the caller's behalf. With 'AUTO', all
-        # packages named with 'DEPENDS' will be imported automatically.
-        # Packages from DEP_FILES will need to be named explicitly.
-        [IMPORT < AUTO | [pkg-name [...]] >]
     ]
 )
 ```
@@ -144,12 +152,31 @@ pmm(
 
 ## `CONAN` PMM mode
 
-In `CONAN` mode, PMM will find, obtain, and use Conan to manage project
-packages.
+In `CONAN` mode, PMM will install and use Conan to manage project packages.
 
-PMM will always use the `cmake` Conan generator, and will define imported
-targets for consumption (Equivalent of `conan_basic_setup(TARGETS)`). It will
-also set `CMAKE_PREFIX_PATH` and `CMAKE_MODULE_PATH` for you to use
+
+### PMM-Managed Conan
+
+PMM defaults to a "managed Conan" mode, where it will manage a user-local copy
+of Conan that it will use to perform all tasks. In managed-mode, PMM will ignore
+any other available Conan installation present on the system. Managed mode
+requires that you have a Conan-supported version of Python available for use to
+perform the install.
+
+The installed version of Conan is set by `PMM_CONAN_WANT_VERSION`, which
+defaults to `1.40.4` at time of this writing. You can set
+`PMM_CONAN_WANT_VERSION` before `include()`-ing `pmm.cmake` to control the
+version of Conan that will be installed.
+
+To disable managed-mode and use your own Conan version, set `PMM_CONAN_MANAGED` to `FALSE`. Then PMM will instead search for a `conan` executable to use elsewhere. You can specify a specific conan executable by setting the `PMM_CONAN_EXECUTABLE` variable before including `pmm.cmake`
+
+
+### Conan in PMM
+
+PMM will use the `cmake` Conan generator (or the `cmake_multi` generator, if you
+are using a multi-config CMake generator (experimental)) and will define
+imported targets for consumption (Equivalent of `conan_basic_setup(TARGETS)`).
+It will also set `CMAKE_PREFIX_PATH` and `CMAKE_MODULE_PATH` for you to use
 `find_package()` and `include()` against the installed dependencies.
 
 > **NOTE:** No other CMake variables from regular Conan usage are defined.
@@ -158,19 +185,6 @@ also set `CMAKE_PREFIX_PATH` and `CMAKE_MODULE_PATH` for you to use
 source directory. It will run `conan install` against this file to obtain
 dependencies for your project.
 
-The nitty-gritty of how PMM finds/obtains Conan:
-
-1. Check for the `CONAN_EXECUTABLE` variable. If found, it is used.
-2. Try to find a `conan` executable. Searches:
-    1. Any `pyenv` versions in the user home directory
-    2. `~/.local/bin` for user-mode install binaries
-    3. `C:/Python{36,27,}/Scripts` for Conan installations
-    4. Anything else on `PATH`
-3. If still no Conan, attempts to obtain one automatically, trying first
-   Python 3, then Python 2:
-    1. Check for a `venv` or `virtualenv` executable Python module.
-    2. Create a user-local virtualenv.
-    3. Installs Conan *within the created virtualenv* and uses Conan from there.
 
 ### PMM Will Not do _Everything_ for You
 
@@ -195,7 +209,8 @@ source. **You will need `std::filesystem` or `std::experimental::filesystem`
 support from your compiler and standard library.**
 
 If you want to copy custom ports to the vcpkg ports folder, you can define
-`PORTS` with a list of folders to copy over.
+`PORTS` with a list of folders to copy over. You can create port overlay
+directories and pass them with the `OVERLAY_PORTS` argument to `pmm()`.
 
 `REQUIRES` is a list of packages that you would like to install using the
 `vcpkg` command line tool.
@@ -228,9 +243,8 @@ PMM:
 ## `DDS` PMM mode
 
 With `DDS`, PMM will automatically download and use `dds` to install
-dependencies. This will result in the generation of an `INDEX.lmi` file within
-the build directory that can be imported using the `libman` CMake module's
-`import_packages` function (currently available via CMakeCM).
+dependencies. This will result in imported targets being defined that you can
+then link into your project.
 
 Calling `pmm(DDS)` multiple times is allowed: Each call will *append* to the
 set of installed dependencies rather than override it.
@@ -243,10 +257,10 @@ launcher in the generated toolchain file. This can be override with
 `PMM_DDS_COMPILER_LAUNCHER`, including setting an empty string `""` to disable
 it completely.
 
-**NOTE**: `dds` support is still very experimental, and `dds` itself is very
-new at the time of this writing. Refer to [the `dds`
-documentation](https://vector-of-bool.github.io/docs/dds/) for information
-about using `dds`.
+**NOTE**: `dds` support is still very experimental, and `dds` itself is still in
+alph new at the time of this writing. Refer to [the `dds`
+documentation](https://vector-of-bool.github.io/docs/dds/) for information about
+using `dds`.
 
 
 # Helper Commands
