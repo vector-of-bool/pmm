@@ -247,7 +247,14 @@ function(_pmm_vcpkg)
                 CXX=${CMAKE_CXX_COMPILER}
             "${PMM_VCPKG_EXECUTABLE}" install ${vcpkg_install_args}
             )
+        set(install_lock "${PMM_VCPKG_EXECUTABLE}.install-lock")
+        _pmm_verbose_lock(
+            "${install_lock}"
+            FIRST_MESSAGE "Another 'vcpkg install' process is running. Wait..."
+            FAIL_MESSAGE "Unable to obtain an exclusive lock on the install process. Will continue anyway, but may fail spuriously"
+            )
         _pmm_exec(${cmd} NO_EAT_OUTPUT)
+        file(LOCK "${install_lock}" RELEASE)
         if(_PMM_RC)
             message(FATAL_ERROR "Failed to install requirements with vcpkg [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         else()
