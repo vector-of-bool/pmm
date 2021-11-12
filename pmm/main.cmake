@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
-
 if(NOT "$ENV{HOME}" STREQUAL "")
     set(_PMM_USER_HOME "$ENV{HOME}")
 else()
@@ -19,7 +17,7 @@ function(_pmm_project_fn)
     _pmm_parse_args(
         . DEBUG VERBOSE
         + CONAN VCPKG CMakeCM DDS
-        )
+    )
 
     _pmm_generate_cli_scripts(FALSE)
 
@@ -30,18 +28,30 @@ function(_pmm_project_fn)
         set(PMM_VERBOSE TRUE)
     endif()
 
+    if(ARG_UNPARSED_ARGUMENTS)
+        string(REPLACE ";" ", " unknown "${ARG_UNPARSED_ARGUMENTS}")
+        message(FATAL_ERROR
+            "Unrecognzed arguments: '${unknown}' "
+            "(Check argument spelling and order)")
+    endif()
+
     if(DEFINED ARG_CONAN OR "CONAN" IN_LIST ARGV)
+        _pmm_check_and_include_file(python.cmake)
+        _pmm_check_and_include_file(conan.cmake)
         _pmm_conan(${ARG_CONAN})
         _pmm_lift(CMAKE_MODULE_PATH CMAKE_PREFIX_PATH)
     endif()
     if(DEFINED ARG_VCPKG OR "VCPKG" IN_LIST ARGV)
+        _pmm_check_and_include_file(vcpkg.cmake)
         _pmm_vcpkg(${ARG_VCPKG})
     endif()
     if(DEFINED ARG_CMakeCM OR "CMakeCM" IN_LIST ARGV)
+        _pmm_check_and_include_file(cmcm.cmake)
         _pmm_cmcm(${ARG_CMakeCM})
         _pmm_lift(CMAKE_MODULE_PATH)
     endif()
     if(DEFINED ARG_DDS OR "DDS" IN_LIST ARGV)
+        _pmm_check_and_include_file(dds.cmake)
         _pmm_dds(${ARG_DDS})
     endif()
     _pmm_lift(_PMM_INCLUDE)
@@ -58,15 +68,34 @@ endmacro()
 function(_pmm_script_main)
     _pmm_parse_script_args(
             -nocheck
-            . /Conan /Help /GenerateShellScript
+            . /Conan /Help /Debug /Verbose
     )
-    if (ARG_/GenerateShellScript)
-        _pmm_generate_cli_scripts(TRUE)
-        _pmm_log("Generated pmm-cli.sh and pmm-cli.bat")
+
+    if(ARG_/Help)
+        show_cli_help()
         return()
-    endif ()
-    if (ARG_/Help)
-        message([===[
+    endif()
+
+    if(ARG_/Debug)
+        set(PMM_DEBUG TRUE)
+    endif()
+    if(ARG_/Verbose)
+        set(PMM_VERBOSE TRUE)
+    endif()
+
+    if(ARG_/Conan)
+        _pmm_check_and_include_file(python.cmake)
+        _pmm_check_and_include_file(conan.cmake)
+        _pmm_script_main_conan(${ARG_UNPARSED_ARGUMENTS})
+    else()
+        message(ERROR "PMM did not recognise the given argument list")
+        show_cli_help()
+    endif()
+endfunction()
+
+
+function(show_cli_help)
+    message([===[
 Available options:
 
 /Help
@@ -86,30 +115,30 @@ Available options:
     install it on-the-fly themselves. Add `/Install` to the command line to
     make sure that Conan is present.
 
-    /Uninstall
-        Remove the Conan installation that PMM may have created
-        (necessary for Conan upgrades)
+    /NotManaged
+        Do not use a PMM-managed Conan installation, and instead use one that
+        is already installed in the environment.
 
-    /Install [/Upgrade]
-        Ensure that a Conan executable is installed. If `/Upgrade` is provided,
-        will attempt to upgrade an existing installation
+    /Version
+        Print the Conan version that PMM is using.
+
+    /Uninstall
+        Remove the managed Conan installation that PMM may have created.
+
+    /Install
+        Ensure that the managed Conan executable is installed. If another
+        task is run and Conan has not already been installed, that task will
+        fail. /Install installs lazily and is a no-op if the managed Conan is
+        already installed.
 
     /Where <cookie>
         Print the path to the Conan executable with the given <cookie>
         prepended to the path on the same line.
-        
+
     /Clean
         Run `conan remove * -fsb`.
 
         Removes temporary source and build folders in the local conan cache.
-
-    /Clean
-        Run `conan remove * -fsb`.
-        
-        Removes temporary source and build folders in the local conan cache.
-
-    /Version
-        Print the Conan version
 
     /EnsureRemotes [<name>[::no_verify] <url> [...]]
         Ensure the given Conan remotes are defined.
@@ -119,8 +148,6 @@ Available options:
 
         It must either already exist, or you may pass `/GenProfile` to create it
         on-the-fly.
-
-
 
     /GenProfile [/Lazy]
         Use PMM's Conan-profile generation to write a profile file to the
@@ -158,12 +185,5 @@ Available options:
         `<ref>` may be a partial `user/channel` reference. In this case the full
         ref will be obtained using the project in the current directory.
 ]===])
-        return()
-    endif()
-
-    if(ARG_/Conan)
-        _pmm_script_main_conan(${ARG_UNPARSED_ARGUMENTS})
-    else()
-        message(FATAL_ERROR "PMM did not recognise the given argument list")
-    endif()
+    return()
 endfunction()

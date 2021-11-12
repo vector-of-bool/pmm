@@ -1,14 +1,25 @@
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding=$false)]
 param(
     # Run the Docker tests
+    [Parameter()]
     [switch]
     $RunDockerTests,
     # Forcibly set CC and CXX to MSVC cl.exe
+    [Parameter()]
     [switch]
     $ForceMSVC,
     # Ignore the `ci/` tests directory
+    [Parameter()]
     [switch]
-    $NoCITestDir
+    $NoCITestDir,
+    # Do not delete the build directory before running
+    [Parameter()]
+    [switch]
+    $NoClean,
+    # Run tests matching the given regular expression
+    [Parameter()]
+    [regex]
+    $TestRegex
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,7 +54,7 @@ if (! $ninja) {
 $source_dir = $PSScriptRoot
 $bin_dir = Join-Path $source_dir "ci-build"
 
-if (Test-Path $bin_dir) {
+if (-not $NoClean -and (Test-Path $bin_dir)) {
     Remove-Item -Recurse $bin_dir -Force
 }
 
@@ -71,7 +82,16 @@ if ($LASTEXITCODE) {
 
 $cm_dir = Split-Path $cmake -Parent
 $ctest = Join-Path $cm_dir "ctest"
-& $cmake -E chdir $bin_dir $ctest -j6 --output-on-failure
+$args = @()
+if ($VerbosePreference) {
+    $args += "-V"
+}
+
+if ($TestRegex) {
+    $args += "-R", "$TestRegex"
+}
+
+& $cmake -E chdir $bin_dir $ctest -j6 --output-on-failure @args
 if ($LASTEXITCODE) {
     throw "CTest failed [$LASTEXITCODE]"
 }

@@ -1,15 +1,14 @@
-cmake_minimum_required(VERSION 3.10)
-project(pmm VERSION 1.5.1)
+cmake_minimum_required(VERSION 3.13)
+project(pmm VERSION 2.0.0)
+
+include(latest-version.cmake)
+include(changelog.cmake)
 
 set(PMM_ALWAYS_DOWNLOAD TRUE)
 set(PMM_URL "file://${PROJECT_SOURCE_DIR}/pmm")
 set(PMM_DEBUG TRUE)
 include(pmm.cmake)
-pmm(CONAN
-    BINCRAFTERS COMMUNITY
-    REMOTES vob https://api.bintray.com/conan/vector-of-bool/vector-of-bool
-    )
-include(latest-info.cmake)
+pmm(CONAN BINCRAFTERS)
 
 file(GLOB_RECURSE pmm_sources CONFIGURE_DEPENDS pmm/*)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${pmm_sources})

@@ -1,5 +1,15 @@
 # Download vcpkg at revision `rev` and place the built result in `dir`
 function(_pmm_ensure_vcpkg dir rev)
+    _pmm_verbose_lock(
+        "${dir}.lock"
+        FIRST_MESSAGE "Another CMake instance is bootstrapping vcpkg. Please wait..."
+        FAIL_MESSAGE "Unable to obtain vcpkg bootstrapping lock. Check if there is a stuck process holding it open."
+        RESULT_VARIABLE did_lock
+        LAST_WAIT_DURATION 240
+        )
+    if(NOT did_lock)
+        message(FATAL_ERROR "Unable to obtain exclusive lock on directory ${_PMM_CONAN_MANAGED_VENV_DIR}. Abort.")
+    endif()
     # The final executable is deterministically placed:
     set(PMM_VCPKG_EXECUTABLE "${dir}/vcpkg${CMAKE_EXECUTABLE_SUFFIX}"
         CACHE FILEPATH
@@ -7,9 +17,10 @@ function(_pmm_ensure_vcpkg dir rev)
         FORCE
         )
     _pmm_log(DEBUG "Expecting vcpkg executable at ${PMM_VCPKG_EXECUTABLE}")
-    # Check if the given directory already exists, which means we've already
+    # Check if the vcpkg exe already exists, which means we've already
     # bootstrapped and installed it
-    if(IS_DIRECTORY "${dir}")
+    if(EXISTS "${PMM_VCPKG_EXECUTABLE}")
+        file(LOCK "${dir}.lock" RELEASE)
         return()
     endif()
     # We do the build in a temporary directory, then rename that temporary dir
@@ -81,6 +92,8 @@ function(_pmm_ensure_vcpkg dir rev)
     _pmm_log("vcpkg successfully bootstrapped to ${dir}")
     # Fix for "Could not detect vcpkg-root."
     execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
+    # Release the exclusive lock on the directory we obtained at the top of this fn
+    file(LOCK "${dir}.lock" RELEASE)
 endfunction()
 
 function(_pmm_vcpkg_default_triplet out)
@@ -148,75 +161,107 @@ function(_pmm_vcpkg_default_triplet out)
 endfunction()
 
 function(_pmm_vcpkg_copy_custom_ports ports_list)
-    foreach (port IN LISTS ports_list)
+    foreach(port IN LISTS ports_list)
+        # Port name is based on the directory name
         get_filename_component(port_name ${port} NAME)
-        if (NOT EXISTS "${port}/portfile.cmake")
+        if(NOT EXISTS "${port}/portfile.cmake")
             message(FATAL_ERROR "Failed find portfile in ${port}!")
         endif()
-        set(port_location "${vcpkg_inst_dir}/ports/${port_name}")
-        if(EXISTS "${port_location}" AND NOT EXISTS "${port_location}/CUSTOM_PORT_FROM_PMM.txt")
-          message(WARNING "Portfile already included by default!")
-        elseif(NOT EXISTS "${port_location}/CUSTOM_PORT_FROM_PMM.txt")
-          file(MAKE_DIRECTORY "${port_location}")
-          file(WRITE "${port_location}/CUSTOM_PORT_FROM_PMM.txt" "This is a custom port copied by PMM")
+
+        # Prepare a directory for this port
+        set(port_dest_dir "${__vcpkg_inst_dir}/ports/${port_name}")
+        if(EXISTS "${port_dest_dir}" AND NOT EXISTS "${port_dest_dir}/CUSTOM_PORT_FROM_PMM.txt")
+            message(WARNING "Portfile already included by default!")
+        elseif(NOT EXISTS "${port_dest_dir}/CUSTOM_PORT_FROM_PMM.txt")
+            file(MAKE_DIRECTORY "${port_dest_dir}")
+            # Use this stamp file to tell others/ourself this is a Port copied by PMM
+            file(WRITE "${port_dest_dir}/CUSTOM_PORT_FROM_PMM.txt" "This is a custom port copied by PMM")
         endif()
+
+        # Copy all files from the port:
         file(GLOB port_files "${port}/*")
-        foreach (port_file IN LISTS port_files)
-          get_filename_component(port_file_name ${port_file} NAME)
-          set(port_file_location "${port_location}/${port_file_name}")
-          file(TIMESTAMP ${port_file_location} port_file_location_ts)
-          file(TIMESTAMP ${port_file} port_file_ts)
-          _pmm_log(DEBUG "Timestamp: ${port_file_location_ts} for ${port_file_location}")
-          _pmm_log(DEBUG "Timestamp: ${port_file_ts} for ${port_file}")
+        foreach(port_file_src IN LISTS port_files)
+          get_filename_component(port_file_name ${port_file_src} NAME)
+          set(port_file_dest "${port_dest_dir}/${port_file_name}")
+          file(TIMESTAMP ${port_file_dest} port_file_location_ts)
+          file(TIMESTAMP ${port_file_src} port_file_ts)
+          _pmm_log(DEBUG "Timestamp: ${port_file_location_ts} for ${port_file_dest}")
+          _pmm_log(DEBUG "Timestamp: ${port_file_ts} for ${port_file_src}")
           if(NOT "${port_file_ts}" STREQUAL "${port_file_location_ts}")
-              _pmm_log(VERBOSE "${port_name}: Copying ${port_file} to ${port_file_location}")
-              file(COPY "${port_file}" DESTINATION "${vcpkg_inst_dir}/ports/${port_name}/")
-          else ()
+              _pmm_log(VERBOSE "${port_name}: Copying ${port_file_src} to ${port_file_dest}")
+              file(COPY "${port_file_src}" DESTINATION "${__vcpkg_inst_dir}/ports/${port_name}/")
+          else()
               _pmm_log(VERBOSE "${port_name}: ${port_file_name} is up to date")
-          endif ()
-        endforeach ()
-    endforeach ()
+          endif()
+        endforeach()
+    endforeach()
 endfunction()
 
 function(_pmm_vcpkg)
     _pmm_parse_args(
         - REVISION TRIPLET
-        + REQUIRES PORTS
+        + REQUIRES PORTS OVERLAY_PORTS OVERLAY_TRIPLETS
         )
 
-    if (NOT DEFINED ARG_REVISION)
-        message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION 2020.06`")
-    endif ()
+    if(NOT DEFINED ARG_REVISION)
+        message(FATAL_ERROR "Using pmm(VCPKG) requires a REVISION argument. Try `REVISION 2021.05.12`")
+    endif()
     if(NOT DEFINED ARG_TRIPLET)
         _pmm_vcpkg_default_triplet(ARG_TRIPLET)
     endif()
+
     _pmm_log(VERBOSE "Using vcpkg target triplet ${ARG_TRIPLET}")
-    get_filename_component(vcpkg_inst_dir "${_PMM_USER_DATA_DIR}/vcpkg-${ARG_REVISION}" ABSOLUTE)
-    _pmm_log(DEBUG "vcpkg directory is ${vcpkg_inst_dir}")
+    get_filename_component(__vcpkg_inst_dir "${_PMM_USER_DATA_DIR}/vcpkg-${ARG_REVISION}" ABSOLUTE)
+    _pmm_log(DEBUG "vcpkg directory is ${__vcpkg_inst_dir}")
     set(prev "${PMM_VCPKG_EXECUTABLE}")
-    _pmm_ensure_vcpkg("${vcpkg_inst_dir}" "${ARG_REVISION}")
+
+    _pmm_ensure_vcpkg("${__vcpkg_inst_dir}" "${ARG_REVISION}")
     if(NOT prev STREQUAL PMM_VCPKG_EXECUTABLE)
         _pmm_log("Using vcpkg executable: ${PMM_VCPKG_EXECUTABLE}")
     endif()
-    if (DEFINED ARG_PORTS)
+
+    if(DEFINED ARG_PORTS)
         _pmm_vcpkg_copy_custom_ports("${ARG_PORTS}")
-    endif ()
+    endif()
+
+    set(vcpkg_install_args
+        --triplet "${ARG_TRIPLET}"
+        --recurse
+        ${ARG_REQUIRES}
+        )
+
+    foreach(overlay IN LISTS ARG_OVERLAY_PORTS)
+        get_filename_component(overlay "${overlay}" ABSOLUTE)
+        list(APPEND vcpkg_install_args "--overlay-ports=${overlay}")
+    endforeach()
+
+    foreach(triplet IN LISTS ARG_OVERLAY_TRIPLETS)
+        get_filename_component(triplet "${triplet}" ABSOLUTE)
+        list(APPEND vcpkg_install_args "--overlay-triplets=${triplet}")
+    endforeach()
+
     if(ARG_REQUIRES)
         _pmm_log("Installing requirements with vcpkg")
         set(cmd ${CMAKE_COMMAND} -E env
-                VCPKG_ROOT=${vcpkg_inst_dir}
+                VCPKG_ROOT=${__vcpkg_inst_dir}
                 CC=${CMAKE_C_COMPILER}
                 CXX=${CMAKE_CXX_COMPILER}
-            "${PMM_VCPKG_EXECUTABLE}" install
-                --triplet "${ARG_TRIPLET}"
-                ${ARG_REQUIRES}
+            "${PMM_VCPKG_EXECUTABLE}" install ${vcpkg_install_args}
+            )
+        set(install_lock "${PMM_VCPKG_EXECUTABLE}.install-lock")
+        _pmm_verbose_lock(
+            "${install_lock}"
+            FIRST_MESSAGE "Another 'vcpkg install' process is running. Wait..."
+            FAIL_MESSAGE "Unable to obtain an exclusive lock on the install process. Will continue anyway, but may fail spuriously"
             )
         _pmm_exec(${cmd} NO_EAT_OUTPUT)
+        file(LOCK "${install_lock}" RELEASE)
         if(_PMM_RC)
             message(FATAL_ERROR "Failed to install requirements with vcpkg [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         else()
             _pmm_log(DEBUG "vcpkg output:\n${_PMM_OUTPUT}")
         endif()
     endif()
-    set(_PMM_INCLUDE "${vcpkg_inst_dir}/scripts/buildsystems/vcpkg.cmake" PARENT_SCOPE)
+    set(_PMM_INCLUDE "${__vcpkg_inst_dir}/scripts/buildsystems/vcpkg.cmake" PARENT_SCOPE)
+    _pmm_generate_shim(vcpkg "${PMM_VCPKG_EXECUTABLE}")
 endfunction()
