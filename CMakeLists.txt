@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(pmm VERSION 2.0.0)
 
 include(latest-version.cmake)
-include(changelog.cmake)
+include(latest-info.cmake)
 
 set(PMM_ALWAYS_DOWNLOAD TRUE)
 set(PMM_URL "file://${PROJECT_SOURCE_DIR}/pmm")
