@@ -187,7 +187,7 @@ function(_pmm_verbose_lock fpath)
     # Couldn't get the lock
     _pmm_log("${ARG_FIRST_MESSAGE}")
     file(
-        LOCK "${dir}" ${arg_dir}
+        LOCK "${fpath}" ${arg_dir}
         GUARD PROCESS
         TIMEOUT 60
         RESULT_VARIABLE lock_res
@@ -197,7 +197,7 @@ function(_pmm_verbose_lock fpath)
     endif()
     _pmm_log("Unable to obtain lock after 60 seconds. We'll try for one more minute...")
     file(
-        LOCK "${_PMM_CONAN_MANAGED_VENV_DIR}" ${arg_dir}
+        LOCK "${fpath}" ${arg_dir}
         GUARD PROCESS
         TIMEOUT 60
         RESULT_VARIABLE lock_res
