@@ -57,7 +57,7 @@
   before include()-ing this file. You can change this version here to update
   the version of PMM that is used by your project: ]]
 
-  set(PMM_VERSION_INIT "1.5.0")
+  set(PMM_VERSION_INIT "2.0.0")
 
   # (See the README below for more information)
 #
@@ -75,12 +75,14 @@
 
   ####################################################################
 
-  This script is the "entrypoint" for PMM. This file should be COPIED and
-  COMMITTED into the source tree of the project that wishes to use PMM. Do not
-  use a file(DOWNLOAD), FetchContent(), or other pre-build script to download
-  this file: It is intended to live in the source tree of its users and be very
-  rarely be manually updated. This file is in-and-of-itself a
-  FetchContent()-like script that will download and import the full PMM code.
+  This script is the "entrypoint" for PMM.
+
+  This file should be COPIED and COMMITTED into the source tree of the project
+  that wishes to use PMM. Do not use a file(DOWNLOAD), FetchContent(), or other
+  pre-build script to download this file: It is intended to live in the source
+  tree of its users and be very rarely be manually updated. This file is
+  in-and-of-itself a FetchContent()-like script that will download and import
+  the full PMM code.
 
   This script will not automatically upgrade the version of PMM that is imported
   unless you specifically request it. You can be assured that the PMM code being
@@ -91,7 +93,8 @@
   file. Additionally, the 'set(PMM_VERSION_INIT)' line above this readme can be
   modified to control the PMM version.
 
-  HINT: You can run this script with CMake directly. ]]
+  HINT: You can run this script with CMake directly via 'cmake -P pmm.cmake' for
+  additional command-line functionality. ]]
 
 
 #[[ Options:
@@ -114,9 +117,8 @@
   options can all be tweaked in one of two ways:
 
     - Change the default value of the option here in pmm.cmake in the associated
-      call to pmm_option(). This can be useful if you want to make a
-      customized version of PMM and pmm.cmake to distribute and reuse between
-      projects.
+      call to pmm_option(). This is useful if you want to make a customized
+      version of PMM and pmm.cmake to distribute and reuse between projects.
 
     - Set the associated variable before include()-ing this file. This is
       preferred for temporary changes, or for one-off projects that need custom
@@ -247,7 +249,7 @@
     RESULT_VARIABLE _lock_res
     )
   if(NOT _lock_res STREQUAL "0")
-    message(WARNING "PMM entry didn't lock the directory ${PMM_DIR} successfully (${_lock_res}). We'll continue as best we can.")
+    message(WARNING "PMM entry didn't lock the directory [${PMM_DIR}] successfully (${_lock_res}). We'll continue as best we can.")
     set(_pmm_init_did_lock FALSE)
   else()
     set(_pmm_init_did_lock TRUE)
@@ -261,16 +263,13 @@
       )
     list(GET pair 0 rc)
     list(GET pair 1 msg)
-    if (rc)
+    if(rc)
       message(FATAL_ERROR "Failed to download PMM entry file: ${msg}")
-    endif ()
+    endif()
     file(RENAME "${_PMM_ENTRY_FILE}.tmp" "${_PMM_ENTRY_FILE}")
   endif()
 
-  # ^^^ DO NOT CHANGE THIS LINE vvv
   set(_PMM_BOOTSTRAP_VERSION 4)
-  # ^^^ DO NOT CHANGE THIS LINE ^^^
-
   include("${_PMM_ENTRY_FILE}")
 
   if(_pmm_init_did_lock)
