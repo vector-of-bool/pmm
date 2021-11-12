@@ -6,8 +6,8 @@ if(_was_included)
 endif()
 set_property(GLOBAL PROPERTY _PMM_DDS_INCLUDED TRUE)
 
-_pmm_set_if_undef(PMM_DDS_VERSION "0.1.0-alpha.6")
-_pmm_set_if_undef(PMM_DDS_URL_BASE "https://github.com/vector-of-bool/dds/releases/download/${PMM_DDS_VERSION}")
+pmm_option(PMM_DDS_VERSION "0.1.0-alpha.6")
+pmm_option(PMM_DDS_URL_BASE "https://github.com/vector-of-bool/dds/releases/download/${PMM_DDS_VERSION}")
 
 if(NOT CMAKE_SCRIPT_MODE_FILE)
     # Script-mode doesn't like calling define_property()
@@ -51,8 +51,8 @@ function(_pmm_get_dds_exe out)
     else()
         message(FATAL_ERROR "We are unnable to automatically download a DDS executable for this system.")
     endif()
-    _pmm_set_if_undef(PMM_DDS_FILENAME "${dds_fname}")
-    _pmm_set_if_undef(PMM_DDS_URL "${PMM_DDS_URL_BASE}/${PMM_DDS_FILENAME}")
+    pmm_option(PMM_DDS_FILENAME "${dds_fname}")
+    pmm_option(PMM_DDS_URL "${PMM_DDS_URL_BASE}/${PMM_DDS_FILENAME}")
     if(NOT EXISTS "${dds_dest}")
         # Download to a temporary location
         set(dds_tempfile "${PMM_DIR}/tmp")
@@ -259,6 +259,8 @@ function(_pmm_dds)
         )
 
     _pmm_get_dds_exe(dds_exe)
+
+    _pmm_generate_shim(dds "${dds_exe}")
 
     # The user may call pmm(DDS) multiple times, in which case we append to the
     # dependencies as we import them, rather than replacing the libman index

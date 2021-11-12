@@ -45,12 +45,6 @@ if(DOCKER_EXECUTABLE AND RUN_DOCKER_TESTS)
                 FIXTURES_REQUIRED "${fixture_name}"
                 SKIP_REGULAR_EXPRESSION "@ctest-skip@"
                 )
-            if(case MATCHES "vcpkg")
-                # Prevent multiple vcpkg tests from running simultaneously, as the bootstrap
-                # process is extremely resource intensive. Find a better way to reduce resource
-                # consumption?
-                set_property(TEST "${test}" PROPERTY RESOURCE_LOCK vcpkg-build)
-            endif()
         endforeach()
     endforeach()
 endif()

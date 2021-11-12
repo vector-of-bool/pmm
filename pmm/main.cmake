@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
-
 if(NOT "$ENV{HOME}" STREQUAL "")
     set(_PMM_USER_HOME "$ENV{HOME}")
 else()

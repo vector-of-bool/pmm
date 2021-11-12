@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.13)
-
 function(_pmm_find_py_py3_launcher ovar)
     set("${ovar}" py-NOTFOUND PARENT_SCOPE)
     find_program(_ret "py")

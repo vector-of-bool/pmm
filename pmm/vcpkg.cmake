@@ -5,6 +5,7 @@ function(_pmm_ensure_vcpkg dir rev)
         FIRST_MESSAGE "Another CMake instance is bootstrapping vcpkg. Please wait..."
         FAIL_MESSAGE "Unable to obtain vcpkg bootstrapping lock. Check if there is a stuck process holding it open."
         RESULT_VARIABLE did_lock
+        LAST_WAIT_DURATION 240
         )
     if(NOT did_lock)
         message(FATAL_ERROR "Unable to obtain exclusive lock on directory ${_PMM_CONAN_MANAGED_VENV_DIR}. Abort.")
@@ -199,7 +200,7 @@ endfunction()
 function(_pmm_vcpkg)
     _pmm_parse_args(
         - REVISION TRIPLET
-        + REQUIRES PORTS OVERLAY
+        + REQUIRES PORTS OVERLAY_PORTS OVERLAY_TRIPLETS
         )
 
     if(NOT DEFINED ARG_REVISION)
@@ -225,12 +226,18 @@ function(_pmm_vcpkg)
 
     set(vcpkg_install_args
         --triplet "${ARG_TRIPLET}"
+        --recurse
         ${ARG_REQUIRES}
         )
 
-    foreach(overlay IN LISTS ARG_OVERLAY)
+    foreach(overlay IN LISTS ARG_OVERLAY_PORTS)
         get_filename_component(overlay "${overlay}" ABSOLUTE)
         list(APPEND vcpkg_install_args "--overlay-ports=${overlay}")
+    endforeach()
+
+    foreach(triplet IN LISTS ARG_OVERLAY_TRIPLETS)
+        get_filename_component(triplet "${triplet}" ABSOLUTE)
+        list(APPEND vcpkg_install_args "--overlay-triplets=${triplet}")
     endforeach()
 
     if(ARG_REQUIRES)
@@ -241,7 +248,14 @@ function(_pmm_vcpkg)
                 CXX=${CMAKE_CXX_COMPILER}
             "${PMM_VCPKG_EXECUTABLE}" install ${vcpkg_install_args}
             )
+        set(install_lock "${PMM_VCPKG_EXECUTABLE}.install-lock")
+        _pmm_verbose_lock(
+            "${install_lock}"
+            FIRST_MESSAGE "Another 'vcpkg install' process is running. Wait..."
+            FAIL_MESSAGE "Unable to obtain an exclusive lock on the install process. Will continue anyway, but may fail spuriously"
+            )
         _pmm_exec(${cmd} NO_EAT_OUTPUT)
+        file(LOCK "${install_lock}" RELEASE)
         if(_PMM_RC)
             message(FATAL_ERROR "Failed to install requirements with vcpkg [${_PMM_RC}]:\n${_PMM_OUTPUT}")
         else()

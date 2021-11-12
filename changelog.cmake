@@ -1,3 +1,7 @@
+if(PMM_IGNORE_NEW_VERSION)
+    return()
+endif()
+
 function(_pmm_changes version)
     if(PMM_VERSION VERSION_LESS version)
         message(STATUS "[pmm]  - Changes in ${version}:")
@@ -87,7 +91,7 @@ _pmm_changes(1.4.3
         "Improve: Update to DDS alpha.4"
         )
 _pmm_changes(1.5.0
-        "New: Support the 'cmake_multi' generator with Conan"
+        "New: Support the 'cmake_multi' generator with Conan (experimental)"
         "New: /Conan /Clean to run 'conan remove -fsb *'"
         "New: IMPORT argument to pmm(DDS) will automatically call import_packages() in some cases"
         "New: Running pmm() will generate pmm-cli.bat and pmm-cli.sh shell scripts to manage PMM"
@@ -103,9 +107,28 @@ _pmm_changes(1.5.1
         "Fix: Unable to run in script mode due to define_property() calls"
         "Fix: Generated Conan profiles without respecting the CMAKE_BUILD_TYPE"
         )
+_pmm_changes(2.0.0
+        "REVIVAL: A new major version, with some important behavioral changes."
+        "IMPORTANT: This change requires updating the 'pmm.cmake' script in your project."
+        "IMPORTANT: Support for Python 2 and Conan older than 1.40.0 is deprecated"
+        "IMPORTANT: Support for CMake older than 3.13.0 has been dropped."
+        "New: PMM generates scripts in the build directory that can be used to execute the "
+        "     associated tools that were provisioned by PMM (Conan, vcpkg, dds)."
+        "Change: PMM now always installs its own copy of Conan unless asked to"
+        "        use the system version."
+        "Change: PMM will not automatically install new Conan versions when they are released."
+        "Fix: PMM uses the updated Bincrafters repository URL"
+        "Change: CONAN_COMMUNITY is now a no-op"
+        "New: VCPKG mode supports OVERLAY_PORTS and OVERLAY_TRIPLETS settings"
+        "Fix: Pass '--recurse' during 'vcpkg install'"
+        "Fix: Concurrent vcpkg bootstrapping is now guarded with a lock"
+        "Change: Use dds Alpha 6"
+        "Meta: Improved test case coverage will ensure greater stability and maintainability."
+        "Meta: pmm.cmake now has better inline docs to document its behavior and usage."
+        )
 message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
 message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")
 
-if (NOT DEFINED _PMM_BOOTSTRAP_VERSION OR _PMM_BOOTSTRAP_VERSION LESS 2)
+if(NOT DEFINED _PMM_BOOTSTRAP_VERSION OR _PMM_BOOTSTRAP_VERSION LESS 4)
     message(STATUS "[pmm] NOTE: pmm.cmake has changed! Please download a new pmm.cmake from the PMM repository.")
-endif ()
+endif()

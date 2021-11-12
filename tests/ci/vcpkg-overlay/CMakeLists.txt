@@ -6,7 +6,7 @@ include(${PMM_INCLUDE})
 pmm(VCPKG
         REVISION 2021.05.12
         REQUIRES nlohmann-json[test-feature]
-        OVERLAY custom-ports/ custom-ports2/
+        OVERLAY_PORTS custom-ports/ custom-ports2/
     DEBUG
     )
 

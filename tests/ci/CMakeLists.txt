@@ -6,7 +6,7 @@ function(add_pmm_ci_test name)
         - GENERATOR SOURCE_DIR
     )
     get_filename_component(dirpath "${ARG_SOURCE_DIR}" ABSOLUTE)
-    _pmm_set_if_undef(ARG_GENERATOR "${CMAKE_GENERATOR}")
+    pmm_option(ARG_GENERATOR "${CMAKE_GENERATOR}")
     add_test(
         NAME "pmm.test.ci.${name}"
         COMMAND "${CMAKE_COMMAND}"
@@ -17,9 +17,6 @@ function(add_pmm_ci_test name)
             -D "SOURCE_DIR=${dirpath}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/RunCITest.cmake"
         )
-    if(name MATCHES "vcpkg")
-        set_property(TEST "pmm.test.ci.${name}" PROPERTY RESOURCE_LOCK vcpkg-build)
-    endif()
 endfunction()
 
 foreach(subdir conan vcpkg cmcm dds vcpkg-overlay)
