@@ -1,4 +1,4 @@
-FROM centos:8
+FROM rockylinux:8
 
 RUN yum -y install wget curl python3 gcc gcc-c++ make unzip git
 
