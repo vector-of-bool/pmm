@@ -16,7 +16,7 @@ endif()
 function(_pmm_project_fn)
     _pmm_parse_args(
         . DEBUG VERBOSE
-        + CONAN VCPKG CMakeCM DDS
+        + CONAN VCPKG CMakeCM DDS BPT
     )
 
     _pmm_generate_cli_scripts(FALSE)
@@ -53,6 +53,10 @@ function(_pmm_project_fn)
     if(DEFINED ARG_DDS OR "DDS" IN_LIST ARGV)
         _pmm_check_and_include_file(dds.cmake)
         _pmm_dds(${ARG_DDS})
+    endif()
+    if(DEFINED ARG_BPT OR "BPT" IN_LIST ARGV)
+        _pmm_check_and_include_file(bpt.cmake)
+        _pmm_bpt(${ARG_BPT})
     endif()
     _pmm_lift(_PMM_INCLUDE)
 endfunction()

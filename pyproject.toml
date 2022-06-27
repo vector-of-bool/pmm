@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "pmm"
+version = "0.1.0"
+description = "The Package Manager Manager"
+authors = ["vector-of-bool <vectorofbool@gmail.com>"]
+packages = [{include = "ci/"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pytest = "^7.1.2"
+pyright = "^1.1.255"
+yapf = "^0.32.0"
+toml = "^0.10.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.yapf]
+based_on_style = "pep8"
+column_limit = 120
