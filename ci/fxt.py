@@ -14,44 +14,10 @@ def pmm_dir() -> Path:
     return ROOT
 
 
-class CMakeCommandWriterFunction(Protocol):
-
-    def __call__(self, *argv: str) -> None:
-        ...
-
-
-class CMakeFileWriter:
-
-    def __init__(self, into: MutableSequence[str]) -> None:
-        self._into = into
-
-    def _quote(self, s: str) -> str:
-        if any(bad in s for bad in '${} \n[]()"'):
-            return '"' + s.replace('"', '\\"') + '"'
-        return s
-
-    def __getattr__(self, n: str) -> CMakeCommandWriterFunction:
-
-        def _write(*argv: str) -> None:
-            line = f'{n.lower()}(' + ' '.join(self._quote(s) for s in argv) + ')'
-            self._into.append(line)
-
-        return _write
-
-
 class CMakeProject:
 
     def __init__(self, dirpath: Path) -> None:
         self.root = dirpath
-
-    @contextmanager
-    def write_CMakeLists(self) -> Iterator[CMakeFileWriter]:
-        """Write the CMakeLists.txt file"""
-        lines: list[str] = []
-        yield CMakeFileWriter(lines)
-        content = '\n'.join(lines) + '\n'
-        print(f'Generated CMakeLists.txt: {textwrap.indent(content, prefix="  ")}')
-        self.root.joinpath('CMakeLists.txt').write_text(content, encoding='utf-8')
 
     def configure(self) -> None:
         cmd = ['cmake', '-S', str(self.root), '-B', str(self.root / '_build')]
