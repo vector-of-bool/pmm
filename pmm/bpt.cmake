@@ -23,7 +23,7 @@ if(NOT CMAKE_SCRIPT_MODE_FILE)
         )
 endif()
 
-set_property(GLOBAL PROPERTY BPT_DEPENDS "")
+set_property(GLOBAL PROPERTY BPT_DEPENDENCIES "")
 set_property(GLOBAL PROPERTY BPT_DEP_FILES "")
 
 
