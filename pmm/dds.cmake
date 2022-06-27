@@ -93,7 +93,7 @@ function(_pmm_dds_json5_flags_array out)
 endfunction()
 
 function(_pmm_dds_generate_toolchain out)
-    get_filename_component(toolchain_dest "${PMM_DIR}/dds-toolchain.json5" ABSOLUTE)
+    get_filename_component(toolchain_dest "${PMM_DIR}/bpt-toolchain.json5" ABSOLUTE)
 
     # First, determine the compiler_id
     if(DEFINED CMAKE_CXX_COMPILER_ID)
@@ -147,7 +147,7 @@ function(_pmm_dds_generate_toolchain out)
     # Multi-conf builds are *possible*, but will require a significant amount of
     # work.
     if(CMAKE_CONFIGURATION_TYPES)
-        _pmm_log(WARNING "Using pmm+dds with multi-conf builds is not yet fully supported.")
+        _pmm_log(WARNING "Using pmm+bpt with multi-conf builds is not yet fully supported.")
         set(gen_debug TRUE)
         set(optimize true)
     endif()
@@ -220,8 +220,8 @@ function(_pmm_dds_generate_toolchain out)
     endif()
 
     # Detect a compiler launcher (i.e. `ccache`)
-    if(DEFINED PMM_DDS_COMPILER_LAUNCHER)
-        set(launcher "${PMM_DDS_COMPILER_LAUNCHER}")
+    if(DEFINED PMM_DDS_COMPILER_LAUNCHER OR DEFINED PMM_BPT_COMPILER_LAUNCHER)
+        set(launcher "${PMM_DDS_COMPILER_LAUNCHER}${PMM_BPT_COMPILER_LAUNCHER}")
     else()
         get_directory_property(launcher CXX_COMPILER_LAUNCHER)
         if(NOT launcher)
@@ -247,11 +247,11 @@ function(_pmm_dds_generate_toolchain out)
     ]] toolchain_content @ONLY)
     file(WRITE "${toolchain_dest}" "${toolchain_content}")
     set("${out}" "${toolchain_dest}" PARENT_SCOPE)
-    _pmm_log(DEBUG "Generated dds toolchain at ${toolchain_dest} with content: ${toolchain_content}")
+    _pmm_log(DEBUG "Generated bpt toolchain at ${toolchain_dest} with content: ${toolchain_content}")
 endfunction()
 
 function(_pmm_dds)
-    _pmm_log(WARNING "dds support is experimental! Don't rely on this for critical systems!")
+    _pmm_log(WARNING "The DDS subcommand is being replaced with BPT! Update soon!")
     _pmm_parse_args(
         -hardcheck
         - TOOLCHAIN

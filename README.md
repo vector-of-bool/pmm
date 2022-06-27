@@ -9,7 +9,7 @@ perfectly working tool present. PMM uses the CMake scripting language to manage
 external packaging tools. PMM will automatically download, install, and control
 package managers from within your CMake project.
 
-(As you are reading this, only Conan, vcpkg, CMakeCM, and dds are supported.)
+(As you are reading this, only Conan, vcpkg, CMakeCM, and bpt are supported.)
 
 ## But This is Just *Another* Tool I have to Manage!
 
@@ -135,16 +135,16 @@ pmm(
         {ROLLING | FROM <base-url>}
     ]
 
-    # Use dds
-    [DDS
+    # Use bpt
+    [BPT
         # Specify a toolchain. Given as the --toolchain argument to `build-deps`.
         # If not specified, one will be generated automatically based on the
         # current CMake settings.
         [TOOLCHAIN <toolchain>]
-        # List of dependency files. Given as --deps to `build-deps`.
+        # List of dependency files. Given as --deps-file to `build-deps`.
         [DEP_FILES [filepath [...]]]
-        # List of direct dependency strings.
-        [DEPENDS [dep [...]]]
+        # List of dependency specifiers.
+        [DEPENDENCIES [dep [...]]]
     ]
 )
 ```
@@ -240,13 +240,13 @@ PMM:
   is a url that *prefixes* the `CMakeCM.cmake` module URL.
 
 
-## `DDS` PMM mode
+## `BPT` PMM mode
 
-With `DDS`, PMM will automatically download and use `dds` to install
+With `BPT`, PMM will automatically download and use `bpt` to install
 dependencies. This will result in imported targets being defined that you can
 then link into your project.
 
-Calling `pmm(DDS)` multiple times is allowed: Each call will *append* to the
+Calling `pmm(BPT)` multiple times is allowed: Each call will *append* to the
 set of installed dependencies rather than override it.
 
 The current compile flags, definitions, and include directories will be used to
@@ -254,13 +254,12 @@ generate a toolchain file automatically if one is not provided.
 
 The value of `CMAKE_CXX_COMPILER_LAUNCHER` will be given as the compiler
 launcher in the generated toolchain file. This can be override with
-`PMM_DDS_COMPILER_LAUNCHER`, including setting an empty string `""` to disable
+`PMM_BPT_COMPILER_LAUNCHER`, including setting an empty string `""` to disable
 it completely.
 
-**NOTE**: `dds` support is still very experimental, and `dds` itself is still in
-alph new at the time of this writing. Refer to [the `dds`
-documentation](https://vector-of-bool.github.io/docs/dds/) for information about
-using `dds`.
+**NOTE**: `bpt` support is still very experimental, and `bpt` itself is still in
+beta at the time of this writing. Refer to [the `bpt`
+documentation](https://bpt.pizza/docs/) for information about using `bpt`.
 
 
 # Helper Commands
