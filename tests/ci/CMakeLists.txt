@@ -19,6 +19,6 @@ function(add_pmm_ci_test name)
         )
 endfunction()
 
-foreach(subdir conan vcpkg cmcm dds vcpkg-overlay)
+foreach(subdir conan vcpkg cmcm vcpkg-overlay)
     add_pmm_ci_test("${subdir}" SOURCE_DIR "${subdir}")
 endforeach()
