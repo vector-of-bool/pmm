@@ -57,7 +57,7 @@
   before include()-ing this file. You can change this version here to update
   the version of PMM that is used by your project: ]]
 
-  set(PMM_VERSION_INIT "2.0.0")
+  set(PMM_VERSION_INIT "2.1.0")
 
   # (See the README below for more information)
 #
@@ -80,7 +80,7 @@
   This file should be COPIED and COMMITTED into the source tree of the project
   that wishes to use PMM. Do not use a file(DOWNLOAD), FetchContent(), or other
   pre-build script to download this file: It is intended to live in the source
-  tree of its users and be very rarely be manually updated. This file is
+  tree of its users and very rarely be manually updated. This file is
   in-and-of-itself a FetchContent()-like script that will download and import
   the full PMM code.
 
