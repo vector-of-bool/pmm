@@ -26,12 +26,12 @@ $ErrorActionPreference = "Stop"
 
 if ($PSVersionTable.OS -and $PSVersionTable.OS.StartsWith("Darwin")) {
     # We're on macOS, and we need a newer GCC for the FS TS
-    & brew install "gcc@8"
+    & brew install "gcc@9"
     if ($LASTEXITCODE) {
         throw "Brew installation failed!"
     }
-    $cc = Get-ChildItem '/usr/local/Cellar/gcc@8/*/bin/gcc-8'
-    $cxx = Get-ChildItem '/usr/local/Cellar/gcc@8/*/bin/g++-8'
+    $cc = Get-ChildItem '/usr/local/Cellar/gcc@9/*/bin/gcc-9'
+    $cxx = Get-ChildItem '/usr/local/Cellar/gcc@9/*/bin/g++-9'
     $env:CC = $cc.FullName
     $env:CXX = $cxx.FullName
 }

@@ -51,7 +51,7 @@ jobs:
           unzip ninja-mac.zip
           sudo cp -v ninja /usr/local/bin/
         displayName: Prepare System
-      - script: env CXX=g++-8 CC=gcc-8 pwsh ./ci.ps1
+      - script: env CXX=g++-9 CC=gcc-9 pwsh ./ci.ps1
         displayName: Run tests
 
   - job: macOS_11
@@ -64,5 +64,5 @@ jobs:
           unzip ninja-mac.zip
           sudo cp -v ninja /usr/local/bin/
         displayName: Prepare System
-      - script: env CXX=g++-8 CC=gcc-8 pwsh ./ci.ps1
+      - script: env CXX=g++-9 CC=gcc-9 pwsh ./ci.ps1
         displayName: Run tests
