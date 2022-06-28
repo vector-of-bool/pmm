@@ -163,12 +163,16 @@ any other available Conan installation present on the system. Managed mode
 requires that you have a Conan-supported version of Python available for use to
 perform the install.
 
-The installed version of Conan is set by `PMM_CONAN_WANT_VERSION`, which
-defaults to `1.40.4` at time of this writing. You can set
-`PMM_CONAN_WANT_VERSION` before `include()`-ing `pmm.cmake` to control the
-version of Conan that will be installed.
+Conan is installed by invoking `pip` with a single `conan` requirement
+specifier. The default specifier is `conan<2`, which will cause Pip to install
+the newest version of Conan less that 2.0. The arguments given to the Pip
+command can be changed by setting the `PMM_CONAN_PIP_INSTALL_ARGS` option
+variable beforing `include()`-ing `pmm.cmake`.
 
-To disable managed-mode and use your own Conan version, set `PMM_CONAN_MANAGED` to `FALSE`. Then PMM will instead search for a `conan` executable to use elsewhere. You can specify a specific conan executable by setting the `PMM_CONAN_EXECUTABLE` variable before including `pmm.cmake`
+To disable managed-mode and use your own Conan version, set `PMM_CONAN_MANAGED`
+to `FALSE`. Then PMM will instead search for a `conan` executable to use
+elsewhere. You can specify a specific conan executable by setting the
+`PMM_CONAN_EXECUTABLE` variable before including `pmm.cmake`.
 
 
 ### Conan in PMM
