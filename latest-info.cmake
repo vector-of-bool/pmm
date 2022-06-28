@@ -1,4 +1,4 @@
-set(PMM_LATEST_VERSION 2.0.0)
+set(PMM_LATEST_VERSION 2.1.0)
 
 if(PMM_IGNORE_NEW_VERSION)
     return()
@@ -128,6 +128,12 @@ if(PMM_VERSION VERSION_LESS PMM_LATEST_VERSION)
         "Change: Use dds Alpha 6"
         "Meta: Improved test case coverage will ensure greater stability and maintainability."
         "Meta: pmm.cmake now has better inline docs to document its behavior and usage."
+        )
+    _pmm_changes(2.1.0
+        "Change: The managed Conan is now *unpinned*! Conan version may be automatically upgraded."
+        "        If you require a specific version, use PMM_CONAN_PIP_INSTALL_ARGS."
+        "Change: DDS mode is deprecated. BPT mode is now here. Uses bpt-1.0.0-beta.1."
+        "Change: Recommended vcpkg has been updated."
         )
     message(STATUS "[pmm] To update, simply change the value of PMM_VERSION_INIT in pmm.cmake")
     message(STATUS "[pmm] You can disable these messages by setting PMM_IGNORE_NEW_VERSION to TRUE before including pmm.cmake")

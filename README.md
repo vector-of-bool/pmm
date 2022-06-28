@@ -9,7 +9,7 @@ perfectly working tool present. PMM uses the CMake scripting language to manage
 external packaging tools. PMM will automatically download, install, and control
 package managers from within your CMake project.
 
-(As you are reading this, only Conan, vcpkg, CMakeCM, and dds are supported.)
+(As you are reading this, only Conan, vcpkg, CMakeCM, and bpt are supported.)
 
 ## But This is Just *Another* Tool I have to Manage!
 
@@ -135,16 +135,16 @@ pmm(
         {ROLLING | FROM <base-url>}
     ]
 
-    # Use dds
-    [DDS
+    # Use bpt
+    [BPT
         # Specify a toolchain. Given as the --toolchain argument to `build-deps`.
         # If not specified, one will be generated automatically based on the
         # current CMake settings.
         [TOOLCHAIN <toolchain>]
-        # List of dependency files. Given as --deps to `build-deps`.
+        # List of dependency files. Given as --deps-file to `build-deps`.
         [DEP_FILES [filepath [...]]]
-        # List of direct dependency strings.
-        [DEPENDS [dep [...]]]
+        # List of dependency specifiers.
+        [DEPENDENCIES [dep [...]]]
     ]
 )
 ```
@@ -163,12 +163,16 @@ any other available Conan installation present on the system. Managed mode
 requires that you have a Conan-supported version of Python available for use to
 perform the install.
 
-The installed version of Conan is set by `PMM_CONAN_WANT_VERSION`, which
-defaults to `1.40.4` at time of this writing. You can set
-`PMM_CONAN_WANT_VERSION` before `include()`-ing `pmm.cmake` to control the
-version of Conan that will be installed.
+Conan is installed by invoking `pip` with a single `conan` requirement
+specifier. The default specifier is `conan<2`, which will cause Pip to install
+the newest version of Conan less that 2.0. The arguments given to the Pip
+command can be changed by setting the `PMM_CONAN_PIP_INSTALL_ARGS` option
+variable beforing `include()`-ing `pmm.cmake`.
 
-To disable managed-mode and use your own Conan version, set `PMM_CONAN_MANAGED` to `FALSE`. Then PMM will instead search for a `conan` executable to use elsewhere. You can specify a specific conan executable by setting the `PMM_CONAN_EXECUTABLE` variable before including `pmm.cmake`
+To disable managed-mode and use your own Conan version, set `PMM_CONAN_MANAGED`
+to `FALSE`. Then PMM will instead search for a `conan` executable to use
+elsewhere. You can specify a specific conan executable by setting the
+`PMM_CONAN_EXECUTABLE` variable before including `pmm.cmake`.
 
 
 ### Conan in PMM
@@ -240,13 +244,13 @@ PMM:
   is a url that *prefixes* the `CMakeCM.cmake` module URL.
 
 
-## `DDS` PMM mode
+## `BPT` PMM mode
 
-With `DDS`, PMM will automatically download and use `dds` to install
+With `BPT`, PMM will automatically download and use `bpt` to install
 dependencies. This will result in imported targets being defined that you can
 then link into your project.
 
-Calling `pmm(DDS)` multiple times is allowed: Each call will *append* to the
+Calling `pmm(BPT)` multiple times is allowed: Each call will *append* to the
 set of installed dependencies rather than override it.
 
 The current compile flags, definitions, and include directories will be used to
@@ -254,13 +258,12 @@ generate a toolchain file automatically if one is not provided.
 
 The value of `CMAKE_CXX_COMPILER_LAUNCHER` will be given as the compiler
 launcher in the generated toolchain file. This can be override with
-`PMM_DDS_COMPILER_LAUNCHER`, including setting an empty string `""` to disable
+`PMM_BPT_COMPILER_LAUNCHER`, including setting an empty string `""` to disable
 it completely.
 
-**NOTE**: `dds` support is still very experimental, and `dds` itself is still in
-alph new at the time of this writing. Refer to [the `dds`
-documentation](https://vector-of-bool.github.io/docs/dds/) for information about
-using `dds`.
+**NOTE**: `bpt` support is still very experimental, and `bpt` itself is still in
+beta at the time of this writing. Refer to [the `bpt`
+documentation](https://bpt.pizza/docs/) for information about using `bpt`.
 
 
 # Helper Commands
